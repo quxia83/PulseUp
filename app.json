@@ -2,6 +2,7 @@
   "expo": {
     "name": "PulseUp",
     "slug": "PulseUp",
+    "scheme": "pulseup",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,16 +13,53 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      "expo-sqlite",
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF6B35",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow PulseUp to access your photos to attach workout videos."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow PulseUp to access your photos.",
+          "savePhotosPermission": "Allow PulseUp to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pulseup.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      }
     },
     "android": {
+      "package": "com.pulseup.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

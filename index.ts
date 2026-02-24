@@ -1,8 +1,11 @@
-import { registerRootComponent } from 'expo';
+import 'expo-dev-client';
 
+// backgroundTask MUST be imported before registerRootComponent so that
+// TaskManager.defineTask is registered before the JS runtime is initialized
+// on a background wake.
+import './src/services/backgroundTask';
+
+import { registerRootComponent } from 'expo';
 import App from './App';
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
 registerRootComponent(App);
