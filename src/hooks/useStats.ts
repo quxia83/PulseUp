@@ -24,7 +24,7 @@ interface StatsData {
   loading: boolean;
 }
 
-export function useStats(): StatsData {
+export function useStats(sinceUnix?: number): StatsData {
   const [data, setData] = useState<StatsData>({
     stats: null,
     weekly: [],
@@ -39,11 +39,11 @@ export function useStats(): StatsData {
       let cancelled = false;
       const load = async () => {
         const [stats, weekly, monthly, topExercises, prs] = await Promise.all([
-          getWorkoutStats(),
+          getWorkoutStats(sinceUnix),
           getWeeklyWorkoutCounts(8),
           getMonthlyVolume(6),
-          getTopExercises(5),
-          getPersonalRecords(),
+          getTopExercises(5, sinceUnix),
+          getPersonalRecords(sinceUnix),
         ]);
         if (!cancelled) {
           setData({ stats, weekly, monthly, topExercises, prs, loading: false });
@@ -51,7 +51,7 @@ export function useStats(): StatsData {
       };
       load().catch(console.error);
       return () => { cancelled = true; };
-    }, [])
+    }, [sinceUnix])
   );
 
   return data;

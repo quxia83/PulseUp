@@ -68,6 +68,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
     const doStart = () => {
       dispatch({
         type: 'LOAD_ROUTINE',
+        routineName: routine?.name ?? '',
         exercises: exercises.map(ex => ({
           name: ex.name,
           sets: Array.from({ length: ex.suggested_sets }, () => ({

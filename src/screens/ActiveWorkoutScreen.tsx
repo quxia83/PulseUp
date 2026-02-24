@@ -46,6 +46,7 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
       const workoutId = await insertWorkout({
         duration_seconds: elapsed,
         notes: state.notes || undefined,
+        source_routine: state.routineName ?? undefined,
       });
 
       await insertExercisesForWorkout(

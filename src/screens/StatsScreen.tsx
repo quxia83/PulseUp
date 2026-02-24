@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,26 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStats } from '../hooks/useStats';
+
+type RangeKey = '7D' | '30D' | '3M' | '6M' | '1Y' | 'All';
+
+const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
+  { key: '7D',  label: '7D',   days: 7 },
+  { key: '30D', label: '30D',  days: 30 },
+  { key: '3M',  label: '3M',   days: 90 },
+  { key: '6M',  label: '6M',   days: 180 },
+  { key: '1Y',  label: '1Y',   days: 365 },
+  { key: 'All', label: 'All',  days: null },
+];
+
+function sinceUnixForDays(days: number | null): number | undefined {
+  if (days === null) return undefined;
+  return Math.floor(Date.now() / 1000) - days * 86400;
+}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const BAR_COLOR = '#FF6B35';
@@ -160,7 +177,9 @@ const lineStyles = StyleSheet.create({
 // ---------- Main screen ----------
 
 export default function StatsScreen() {
-  const { stats, weekly, monthly, topExercises, prs, loading } = useStats();
+  const [range, setRange] = useState<RangeKey>('All');
+  const selectedDays = RANGES.find(r => r.key === range)?.days ?? null;
+  const { stats, weekly, monthly, topExercises, prs, loading } = useStats(sinceUnixForDays(selectedDays));
   const insets = useSafeAreaInsets();
 
   if (loading) {
@@ -171,7 +190,7 @@ export default function StatsScreen() {
     );
   }
 
-  if (!stats || stats.totalWorkouts === 0) {
+  if (!stats && !loading) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyIcon}>📊</Text>
@@ -186,6 +205,21 @@ export default function StatsScreen() {
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
     >
+      {/* Date range pills */}
+      <View style={styles.rangeRow}>
+        {RANGES.map(r => (
+          <Pressable
+            key={r.key}
+            style={[styles.rangePill, range === r.key && styles.rangePillActive]}
+            onPress={() => setRange(r.key)}
+          >
+            <Text style={[styles.rangePillText, range === r.key && styles.rangePillTextActive]}>
+              {r.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       {/* Summary tiles */}
       <View style={styles.tilesGrid}>
         <StatTile label="Total Workouts" value={String(stats.totalWorkouts)} />
@@ -304,4 +338,16 @@ const styles = StyleSheet.create({
   rank: { fontSize: 13, fontWeight: '700', color: '#8E8E93', width: 28 },
   listName: { flex: 1, fontSize: 14, color: '#1C1C1E', fontWeight: '500' },
   listValue: { fontSize: 14, fontWeight: '700', color: '#FF6B35' },
+  rangeRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  rangePill: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#E5E5EA',
+    marginHorizontal: 2,
+  },
+  rangePillActive: { backgroundColor: '#FF6B35' },
+  rangePillText: { fontSize: 12, fontWeight: '600', color: '#3C3C43' },
+  rangePillTextActive: { color: '#fff' },
 });

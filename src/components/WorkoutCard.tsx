@@ -17,14 +17,17 @@ function formatDate(unixSec: number): string {
 }
 
 export default function WorkoutCard({ workout, onPress }: Props) {
+  const subtitle = workout.source_routine ?? workout.exercise_summary ?? null;
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.left}>
         <Text style={styles.date}>{formatDate(workout.created_at)}</Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+        ) : null}
         {workout.notes ? (
-          <Text style={styles.notes} numberOfLines={1}>
-            {workout.notes}
-          </Text>
+          <Text style={styles.notes} numberOfLines={1}>{workout.notes}</Text>
         ) : null}
       </View>
       <View style={styles.right}>
@@ -50,9 +53,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  left: { flex: 1 },
+  left: { flex: 1, gap: 3 },
   date: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
-  notes: { fontSize: 13, color: '#8E8E93', marginTop: 2 },
+  subtitle: { fontSize: 13, fontWeight: '600', color: '#FF6B35' },
+  notes: { fontSize: 12, color: '#8E8E93' },
   right: { alignItems: 'flex-end', gap: 4 },
   duration: { fontSize: 14, color: '#3C3C43', fontVariant: ['tabular-nums'] },
   videoTag: { fontSize: 16 },

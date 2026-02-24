@@ -6,6 +6,7 @@ const initialState: ActiveWorkoutState = {
   startedAt: null,
   exercises: [],
   notes: '',
+  routineName: null,
 };
 
 function generateId(): string {
@@ -90,7 +91,7 @@ function reducer(state: ActiveWorkoutState, action: ActiveWorkoutAction): Active
         sets: ex.sets,
         videoUri: ex.videoUri,
       }));
-      return { ...initialState, isActive: true, startedAt: Date.now(), exercises: loaded };
+      return { ...initialState, isActive: true, startedAt: Date.now(), exercises: loaded, routineName: action.routineName };
     }
 
     default:

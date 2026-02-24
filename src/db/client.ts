@@ -59,12 +59,13 @@ async function createTables(db: SQLite.SQLiteDatabase): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_routines_category ON routines(category);
   `);
 
-  // Migration for existing installs that don't have video_uri on exercises yet
+  // Migrations for existing installs
   try {
     await db.execAsync(`ALTER TABLE exercises ADD COLUMN video_uri TEXT`);
-  } catch {
-    // Column already exists — ignore
-  }
+  } catch { /* already exists */ }
+  try {
+    await db.execAsync(`ALTER TABLE workouts ADD COLUMN source_routine TEXT`);
+  } catch { /* already exists */ }
 
   // Seed built-in routines idempotently
   await seedBuiltinRoutines(db);

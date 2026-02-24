@@ -10,17 +10,25 @@ import type {
 export async function insertWorkout(input: NewWorkoutInput): Promise<number> {
   const db = await getDatabase();
   const result = await db.runAsync(
-    `INSERT INTO workouts (created_at, duration_seconds, notes) VALUES (?, ?, ?)`,
+    `INSERT INTO workouts (created_at, duration_seconds, notes, source_routine) VALUES (?, ?, ?, ?)`,
     Math.floor(Date.now() / 1000),
     input.duration_seconds,
     input.notes ?? null,
+    input.source_routine ?? null,
   );
   return result.lastInsertRowId;
 }
 
 export async function getAllWorkouts(): Promise<Workout[]> {
   const db = await getDatabase();
-  return db.getAllAsync<Workout>(`SELECT * FROM workouts ORDER BY created_at DESC`);
+  return db.getAllAsync<Workout>(`
+    SELECT w.*,
+      (SELECT GROUP_CONCAT(name, ' · ')
+       FROM (SELECT name FROM exercises WHERE workout_id = w.id ORDER BY order_index LIMIT 3)
+      ) as exercise_summary
+    FROM workouts w
+    ORDER BY created_at DESC
+  `);
 }
 
 export async function getWorkoutById(id: number): Promise<Workout | null> {
@@ -204,21 +212,26 @@ export async function deleteRoutine(id: number): Promise<void> {
 
 // ---- Stats ----
 
-export async function getWorkoutStats(): Promise<WorkoutStats> {
+export async function getWorkoutStats(sinceUnix?: number): Promise<WorkoutStats> {
   const db = await getDatabase();
+  const whereClause = sinceUnix ? `WHERE created_at >= ${sinceUnix}` : '';
+  const workoutWhereClause = sinceUnix ? `AND w.created_at >= ${sinceUnix}` : '';
 
   const countRow = await db.getFirstAsync<{ total: number }>(
-    `SELECT COUNT(*) as total FROM workouts`
+    `SELECT COUNT(*) as total FROM workouts ${whereClause}`
   );
   const totalWorkouts = countRow?.total ?? 0;
 
   const volumeRow = await db.getFirstAsync<{ vol: number }>(`
     SELECT COALESCE(SUM(CAST(json_extract(s.value, '$.reps') AS REAL) * CAST(json_extract(s.value, '$.weight_kg') AS REAL)), 0) as vol
-    FROM exercises e, json_each(e.sets) s
+    FROM exercises e
+    JOIN workouts w ON w.id = e.workout_id
+    , json_each(e.sets) s
+    WHERE 1=1 ${workoutWhereClause}
   `);
   const totalVolume = Math.round(volumeRow?.vol ?? 0);
 
-  // Fetch all distinct workout dates for streak calculation
+  // Fetch all distinct workout dates for streak calculation (always all-time for streaks)
   const dateRows = await db.getAllAsync<{ d: string }>(
     `SELECT DISTINCT date(created_at, 'unixepoch') as d FROM workouts ORDER BY d ASC`
   );
@@ -325,20 +338,26 @@ export async function getMonthlyVolume(monthsBack = 6): Promise<MonthlyVolume[]>
   return result;
 }
 
-export async function getTopExercises(limit = 5): Promise<ExerciseFrequency[]> {
+export async function getTopExercises(limit = 5, sinceUnix?: number): Promise<ExerciseFrequency[]> {
   const db = await getDatabase();
+  const whereClause = sinceUnix
+    ? `JOIN workouts w ON w.id = e.workout_id WHERE w.created_at >= ${sinceUnix}`
+    : '';
   return db.getAllAsync<ExerciseFrequency>(
-    `SELECT name, COUNT(*) as count FROM exercises GROUP BY name ORDER BY count DESC LIMIT ?`,
+    `SELECT e.name, COUNT(*) as count FROM exercises e ${whereClause} GROUP BY e.name ORDER BY count DESC LIMIT ?`,
     limit
   );
 }
 
-export async function getPersonalRecords(): Promise<PersonalRecord[]> {
+export async function getPersonalRecords(sinceUnix?: number): Promise<PersonalRecord[]> {
   const db = await getDatabase();
+  const whereClause = sinceUnix
+    ? `JOIN workouts w ON w.id = e.workout_id WHERE CAST(json_extract(s.value, '$.weight_kg') AS REAL) > 0 AND w.created_at >= ${sinceUnix}`
+    : `WHERE CAST(json_extract(s.value, '$.weight_kg') AS REAL) > 0`;
   return db.getAllAsync<PersonalRecord>(`
     SELECT e.name, MAX(CAST(json_extract(s.value, '$.weight_kg') AS REAL)) as max_weight_kg
     FROM exercises e, json_each(e.sets) s
-    WHERE CAST(json_extract(s.value, '$.weight_kg') AS REAL) > 0
+    ${whereClause}
     GROUP BY e.name
     ORDER BY max_weight_kg DESC
   `);

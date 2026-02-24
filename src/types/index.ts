@@ -6,6 +6,8 @@ export interface Workout {
   duration_seconds: number;
   notes: string | null;
   video_uri: string | null;
+  source_routine: string | null;
+  exercise_summary: string | null; // first 3 exercise names, comma-separated
 }
 
 export interface Exercise {
@@ -27,6 +29,7 @@ export interface SetData {
 export interface NewWorkoutInput {
   duration_seconds: number;
   notes?: string;
+  source_routine?: string;
 }
 
 export interface NewExerciseInput {
@@ -51,6 +54,7 @@ export interface ActiveWorkoutState {
   startedAt: number | null; // Date.now() ms
   exercises: ActiveExercise[];
   notes: string;
+  routineName: string | null;
 }
 
 export type ActiveWorkoutAction =
@@ -64,7 +68,7 @@ export type ActiveWorkoutAction =
   | { type: 'SET_NOTES'; notes: string }
   | { type: 'SET_EXERCISE_VIDEO'; localId: string; uri: string | null }
   | { type: 'FINISH_WORKOUT' }
-  | { type: 'LOAD_ROUTINE'; exercises: Array<{ name: string; sets: SetData[]; videoUri: string | null }> };
+  | { type: 'LOAD_ROUTINE'; routineName: string; exercises: Array<{ name: string; sets: SetData[]; videoUri: string | null }> };
 
 export interface ReminderSettings {
   thresholdDays: number;
