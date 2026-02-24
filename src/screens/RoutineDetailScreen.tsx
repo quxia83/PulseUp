@@ -15,8 +15,25 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getRoutineById, getRoutineExercises, getProfile } from '../db/queries';
 import { useWorkout } from '../context/WorkoutContext';
-import type { Routine, RoutineExercise } from '../types';
+import type { Routine, RoutineExercise, ExperienceLevel } from '../types';
 import type { RoutineDetailScreenProps, RootStackParamList } from '../navigation/types';
+
+function weightMultiplier(level: ExperienceLevel | null): number {
+  if (level === 'beginner') return 0.6;
+  if (level === 'advanced')  return 1.2;
+  return 1.0;
+}
+
+function adjustedWeight(raw: number, multiplier: number): number {
+  if (raw <= 0) return 0;
+  return Math.round(raw * multiplier / 2.5) * 2.5;
+}
+
+const LEVEL_LABEL: Record<ExperienceLevel, string> = {
+  beginner:     'Beginner (60% weight)',
+  intermediate: 'Intermediate',
+  advanced:     'Advanced (120% weight)',
+};
 
 const CATEGORY_COLORS: Record<string, string> = {
   Strength: '#FF6B35',
@@ -34,18 +51,23 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [exercises, setExercises] = useState<RoutineExercise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel | null>(null);
   const { state, dispatch } = useWorkout();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
 
+  const multiplier = weightMultiplier(experienceLevel);
+
   useEffect(() => {
     (async () => {
-      const [r, exs] = await Promise.all([
+      const [r, exs, profile] = await Promise.all([
         getRoutineById(routineId),
         getRoutineExercises(routineId),
+        getProfile(),
       ]);
       setRoutine(r);
       setExercises(exs);
+      setExperienceLevel(profile.experience_level);
       setLoading(false);
     })();
   }, [routineId]);
@@ -65,12 +87,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
   }, [navigation, routine]);
 
   const handleStartWorkout = useCallback(() => {
-    const doStart = async () => {
-      const profile = await getProfile();
-      const multiplier =
-        profile.experience_level === 'beginner'  ? 0.6 :
-        profile.experience_level === 'advanced'  ? 1.2 : 1.0;
-
+    const doStart = () => {
       dispatch({
         type: 'LOAD_ROUTINE',
         routineName: routine?.name ?? '',
@@ -78,9 +95,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
           name: ex.name,
           sets: Array.from({ length: ex.suggested_sets }, () => ({
             reps: ex.suggested_reps,
-            weight_kg: ex.suggested_weight_kg > 0
-              ? Math.round(ex.suggested_weight_kg * multiplier / 2.5) * 2.5
-              : 0,
+            weight_kg: adjustedWeight(ex.suggested_weight_kg, multiplier),
           })),
           videoUri: ex.video_url,
         })),
@@ -94,13 +109,13 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
         'You have an active workout. Starting this routine will replace it.',
         [
           { text: 'Keep Current', style: 'cancel' },
-          { text: 'Replace', style: 'destructive', onPress: () => { doStart().catch(console.error); } },
+          { text: 'Replace', style: 'destructive', onPress: doStart },
         ]
       );
     } else {
-      doStart().catch(console.error);
+      doStart();
     }
-  }, [exercises, state, dispatch, rootNav]);
+  }, [exercises, multiplier, state, dispatch, rootNav]);
 
   if (loading) {
     return (
@@ -159,21 +174,35 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
         ) : null}
 
         {/* Exercise list */}
-        <Text style={styles.sectionTitle}>Exercises</Text>
-        {exercises.map((ex, i) => (
-          <View key={ex.id} style={styles.exerciseRow}>
-            <Text style={styles.exerciseIndex}>{i + 1}</Text>
-            <View style={styles.exerciseInfo}>
-              <Text style={styles.exerciseName}>{ex.name}</Text>
-              <Text style={styles.exerciseMeta}>
-                {ex.suggested_sets}×{ex.suggested_reps}
-                {ex.suggested_weight_kg > 0
-                  ? ` @ ${ex.suggested_weight_kg} kg`
-                  : ' · Bodyweight'}
-              </Text>
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Exercises</Text>
+          {experienceLevel && experienceLevel !== 'intermediate' && (
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelBadgeText}>{LEVEL_LABEL[experienceLevel]}</Text>
             </View>
-          </View>
-        ))}
+          )}
+        </View>
+        {exercises.map((ex, i) => {
+          const adj = adjustedWeight(ex.suggested_weight_kg, multiplier);
+          const weightChanged = adj !== ex.suggested_weight_kg && ex.suggested_weight_kg > 0;
+          return (
+            <View key={ex.id} style={styles.exerciseRow}>
+              <Text style={styles.exerciseIndex}>{i + 1}</Text>
+              <View style={styles.exerciseInfo}>
+                <Text style={styles.exerciseName}>{ex.name}</Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.exerciseMeta}>
+                    {ex.suggested_sets}×{ex.suggested_reps}
+                    {adj > 0 ? ` @ ${adj} kg` : ' · Bodyweight'}
+                  </Text>
+                  {weightChanged && (
+                    <Text style={styles.originalWeight}>was {ex.suggested_weight_kg} kg</Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          );
+        })}
       </ScrollView>
 
       {/* Start Workout button */}
@@ -208,7 +237,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   linkText: { fontSize: 15, color: '#1C1C1E', fontWeight: '500' },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E', marginTop: 4 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E' },
+  levelBadge: { backgroundColor: '#FFF4F0', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  levelBadgeText: { fontSize: 12, fontWeight: '600', color: '#FF6B35' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  originalWeight: { fontSize: 11, color: '#C7C7CC', textDecorationLine: 'line-through' },
   exerciseRow: {
     backgroundColor: '#fff',
     borderRadius: 12,
