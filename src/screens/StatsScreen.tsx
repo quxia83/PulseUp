@@ -221,12 +221,14 @@ export default function StatsScreen() {
       </View>
 
       {/* Summary tiles */}
-      <View style={styles.tilesGrid}>
-        <StatTile label="Total Workouts" value={String(stats.totalWorkouts)} />
-        <StatTile label="Current Streak" value={`${stats.currentStreak}d`} />
-        <StatTile label="Longest Streak" value={`${stats.longestStreak}d`} />
-        <StatTile label="Total Volume" value={`${(stats.totalVolume / 1000).toFixed(1)}t`} />
-      </View>
+      {stats && (
+        <View style={styles.tilesGrid}>
+          <StatTile label="Total Workouts" value={String(stats.totalWorkouts)} />
+          <StatTile label="Current Streak" value={`${stats.currentStreak}d`} />
+          <StatTile label="Longest Streak" value={`${stats.longestStreak}d`} />
+          <StatTile label="Total Volume" value={`${(stats.totalVolume / 1000).toFixed(1)}t`} />
+        </View>
+      )}
 
       {/* Weekly bar chart */}
       {weekly.length > 0 && (

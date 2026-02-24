@@ -14,6 +14,7 @@ export type RootTabParamList = {
   RoutinesTab: undefined;
   StatsTab: undefined;
   HistoryTab: undefined;
+  ProfileTab: undefined;
 };
 
 // Stack param lists

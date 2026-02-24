@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 
 const INACTIVITY_NOTIFICATION_ID = 'inactivity-reminder';
+const SCHEDULED_PREFIX = 'scheduled-workout-';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -44,6 +45,40 @@ export async function cancelInactivityReminder(): Promise<void> {
     await Notifications.cancelScheduledNotificationAsync(INACTIVITY_NOTIFICATION_ID);
   } catch {
     // Notification may not exist — safe to ignore
+  }
+}
+
+export async function scheduleWorkoutReminders(
+  days: number[],  // 0=Sun, 1=Mon, ..., 6=Sat
+  hour: number,
+  minute: number,
+): Promise<void> {
+  await cancelWorkoutReminders();
+  for (const day of days) {
+    // expo-notifications weekday: 1=Sun, 2=Mon, ..., 7=Sat
+    await Notifications.scheduleNotificationAsync({
+      identifier: `${SCHEDULED_PREFIX}${day}`,
+      content: {
+        title: "Workout time!",
+        body: "You planned a workout today — let's get it done!",
+        data: { type: 'scheduled' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: day + 1,
+        hour,
+        minute,
+        repeats: true,
+      } as any,
+    });
+  }
+}
+
+export async function cancelWorkoutReminders(): Promise<void> {
+  for (let d = 0; d <= 6; d++) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(`${SCHEDULED_PREFIX}${d}`);
+    } catch { /* ignore */ }
   }
 }
 

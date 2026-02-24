@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getRoutineById, getRoutineExercises } from '../db/queries';
+import { getRoutineById, getRoutineExercises, getProfile } from '../db/queries';
 import { useWorkout } from '../context/WorkoutContext';
 import type { Routine, RoutineExercise } from '../types';
 import type { RoutineDetailScreenProps, RootStackParamList } from '../navigation/types';
@@ -65,7 +65,12 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
   }, [navigation, routine]);
 
   const handleStartWorkout = useCallback(() => {
-    const doStart = () => {
+    const doStart = async () => {
+      const profile = await getProfile();
+      const multiplier =
+        profile.experience_level === 'beginner'  ? 0.6 :
+        profile.experience_level === 'advanced'  ? 1.2 : 1.0;
+
       dispatch({
         type: 'LOAD_ROUTINE',
         routineName: routine?.name ?? '',
@@ -73,7 +78,9 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
           name: ex.name,
           sets: Array.from({ length: ex.suggested_sets }, () => ({
             reps: ex.suggested_reps,
-            weight_kg: ex.suggested_weight_kg,
+            weight_kg: ex.suggested_weight_kg > 0
+              ? Math.round(ex.suggested_weight_kg * multiplier / 2.5) * 2.5
+              : 0,
           })),
           videoUri: ex.video_url,
         })),
@@ -87,11 +94,11 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
         'You have an active workout. Starting this routine will replace it.',
         [
           { text: 'Keep Current', style: 'cancel' },
-          { text: 'Replace', style: 'destructive', onPress: doStart },
+          { text: 'Replace', style: 'destructive', onPress: () => { doStart().catch(console.error); } },
         ]
       );
     } else {
-      doStart();
+      doStart().catch(console.error);
     }
   }, [exercises, state, dispatch, rootNav]);
 

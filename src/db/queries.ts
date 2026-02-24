@@ -3,6 +3,7 @@ import type {
   Workout, Exercise, NewWorkoutInput, SetData,
   Routine, RoutineExercise, NewRoutineInput, NewRoutineExerciseInput,
   WorkoutStats, WeeklyWorkoutCount, MonthlyVolume, ExerciseFrequency, PersonalRecord,
+  UserProfile,
 } from '../types';
 
 // ---- Workouts ----
@@ -346,6 +347,32 @@ export async function getTopExercises(limit = 5, sinceUnix?: number): Promise<Ex
   return db.getAllAsync<ExerciseFrequency>(
     `SELECT e.name, COUNT(*) as count FROM exercises e ${whereClause} GROUP BY e.name ORDER BY count DESC LIMIT ?`,
     limit
+  );
+}
+
+// ---- User Profile ----
+
+export async function getProfile(): Promise<UserProfile> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<UserProfile>(`SELECT * FROM user_profile WHERE id = 1`);
+  return row ?? {
+    weight_kg: null, target_weight_kg: null, height_cm: null,
+    age: null, fitness_goal: null, experience_level: null,
+  };
+}
+
+export async function saveProfile(profile: UserProfile): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `INSERT OR REPLACE INTO user_profile
+     (id, weight_kg, target_weight_kg, height_cm, age, fitness_goal, experience_level)
+     VALUES (1, ?, ?, ?, ?, ?, ?)`,
+    profile.weight_kg ?? null,
+    profile.target_weight_kg ?? null,
+    profile.height_cm ?? null,
+    profile.age ?? null,
+    profile.fitness_goal ?? null,
+    profile.experience_level ?? null,
   );
 }
 

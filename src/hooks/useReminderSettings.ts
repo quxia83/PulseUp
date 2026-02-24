@@ -3,7 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ReminderSettings } from '../types';
 
 const STORAGE_KEY = '@reminder_settings';
-const DEFAULT: ReminderSettings = { thresholdDays: 3, enabled: true };
+const DEFAULT: ReminderSettings = {
+  thresholdDays: 3,
+  enabled: true,
+  scheduledEnabled: false,
+  scheduledDays: [1, 3, 5], // Mon, Wed, Fri
+  scheduledHour: 7,
+  scheduledMinute: 0,
+};
 
 export function useReminderSettings() {
   const [settings, setSettings] = useState<ReminderSettings>(DEFAULT);

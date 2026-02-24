@@ -57,6 +57,16 @@ async function createTables(db: SQLite.SQLiteDatabase): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_routine_exercises_routine_id ON routine_exercises(routine_id);
     CREATE INDEX IF NOT EXISTS idx_routines_category ON routines(category);
+
+    CREATE TABLE IF NOT EXISTS user_profile (
+      id                INTEGER PRIMARY KEY DEFAULT 1,
+      weight_kg         REAL,
+      target_weight_kg  REAL,
+      height_cm         REAL,
+      age               INTEGER,
+      fitness_goal      TEXT,
+      experience_level  TEXT
+    );
   `);
 
   // Migrations for existing installs

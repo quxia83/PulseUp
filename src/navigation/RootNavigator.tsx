@@ -7,6 +7,7 @@ import HistoryStack from './HistoryStack';
 import RoutinesStack from './RoutinesStack';
 import ActiveWorkoutScreen from '../screens/ActiveWorkoutScreen';
 import StatsScreen from '../screens/StatsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import type { RootStackParamList, RootTabParamList } from './types';
 
 const Root = createNativeStackNavigator<RootStackParamList>();
@@ -23,6 +24,7 @@ function BottomTabs() {
             RoutinesTab: 'library-outline',
             StatsTab: 'bar-chart-outline',
             HistoryTab: 'time-outline',
+            ProfileTab: 'person-outline',
           };
           return <Ionicons name={icons[route.name]} size={size} color={color} />;
         },
@@ -38,6 +40,11 @@ function BottomTabs() {
         options={{ title: 'Stats', headerShown: true, headerTitle: 'Stats' }}
       />
       <Tab.Screen name="HistoryTab" component={HistoryStack} options={{ title: 'History' }} />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileScreen}
+        options={{ title: 'Profile', headerShown: true, headerTitle: 'My Profile' }}
+      />
     </Tab.Navigator>
   );
 }

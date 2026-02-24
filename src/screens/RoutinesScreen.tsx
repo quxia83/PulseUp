@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,24 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoutines } from '../hooks/useRoutines';
+import { useProfile } from '../hooks/useProfile';
 import { deleteRoutine } from '../db/queries';
-import type { Routine, RoutineCategory } from '../types';
+import type { Routine, RoutineCategory, FitnessGoal } from '../types';
 import type { RoutinesScreenProps } from '../navigation/types';
 
-const CATEGORIES: Array<RoutineCategory | 'All'> = [
-  'All', 'Strength', 'Cardio', 'HIIT', 'Mobility',
+type FilterKey = RoutineCategory | 'All' | 'ForYou';
+
+const CATEGORIES: Array<FilterKey> = [
+  'ForYou', 'All', 'Strength', 'Cardio', 'HIIT', 'Mobility',
   'Upper Body', 'Lower Body', 'Full Body', 'Core',
 ];
+
+const GOAL_CATEGORIES: Record<FitnessGoal, RoutineCategory[]> = {
+  lose_weight:       ['Cardio', 'HIIT', 'Full Body'],
+  build_muscle:      ['Strength', 'Upper Body', 'Lower Body'],
+  maintain:          ['Full Body', 'Strength', 'Mobility'],
+  improve_endurance: ['Cardio', 'HIIT', 'Mobility'],
+};
 
 const CATEGORY_COLORS: Record<string, string> = {
   Strength: '#FF6B35',
@@ -32,9 +42,22 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
-  const [selectedCategory, setSelectedCategory] = useState<RoutineCategory | 'All'>('All');
-  const { routines, loading } = useRoutines(selectedCategory);
+  const [selectedCategory, setSelectedCategory] = useState<FilterKey>('ForYou');
+  const { profile } = useProfile();
+  // Always fetch all routines; we filter client-side for ForYou
+  const { routines: allRoutines, loading } = useRoutines(
+    selectedCategory === 'ForYou' || selectedCategory === 'All'
+      ? 'All'
+      : selectedCategory
+  );
   const insets = useSafeAreaInsets();
+
+  const routines = useMemo(() => {
+    if (selectedCategory !== 'ForYou') return allRoutines;
+    if (!profile.fitness_goal) return allRoutines;
+    const recommended = GOAL_CATEGORIES[profile.fitness_goal];
+    return allRoutines.filter(r => recommended.includes(r.category as RoutineCategory));
+  }, [allRoutines, selectedCategory, profile.fitness_goal]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -109,14 +132,17 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
         contentContainerStyle={styles.pillsContent}
       >
         {CATEGORIES.map(cat => {
+          // Hide ForYou pill if no goal set
+          if (cat === 'ForYou' && !profile.fitness_goal) return null;
           const active = cat === selectedCategory;
+          const label = cat === 'ForYou' ? '✦ For You' : cat;
           return (
             <Pressable
               key={cat}
               style={[styles.pill, active && styles.pillActive]}
               onPress={() => setSelectedCategory(cat)}
             >
-              <Text style={[styles.pillText, active && styles.pillTextActive]}>{cat}</Text>
+              <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
             </Pressable>
           );
         })}

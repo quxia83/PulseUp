@@ -73,6 +73,10 @@ export type ActiveWorkoutAction =
 export interface ReminderSettings {
   thresholdDays: number;
   enabled: boolean;
+  scheduledEnabled: boolean;
+  scheduledDays: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
+  scheduledHour: number;    // 0-23
+  scheduledMinute: number;  // 0 or 30
 }
 
 // --- Routines ---
@@ -146,4 +150,18 @@ export interface ExerciseFrequency {
 export interface PersonalRecord {
   name: string;
   max_weight_kg: number;
+}
+
+// --- User Profile ---
+
+export type FitnessGoal = 'lose_weight' | 'build_muscle' | 'maintain' | 'improve_endurance';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export interface UserProfile {
+  weight_kg: number | null;
+  target_weight_kg: number | null;
+  height_cm: number | null;
+  age: number | null;
+  fitness_goal: FitnessGoal | null;
+  experience_level: ExperienceLevel | null;
 }
