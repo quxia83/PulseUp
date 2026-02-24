@@ -44,7 +44,7 @@ function ExerciseDetailBlock({ exercise }: ExerciseDetailBlockProps) {
 
       {exercise.sets.map((set, i) => (
         <Text key={i} style={styles.setLine}>
-          Set {i + 1}: {set.reps} reps × {set.weight_kg} kg
+          Set {i + 1}: {set.reps} reps × {set.weight_kg} lbs
         </Text>
       ))}
 

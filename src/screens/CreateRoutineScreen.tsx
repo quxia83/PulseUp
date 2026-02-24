@@ -342,7 +342,7 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
                 />
               </View>
               <View style={styles.exField}>
-                <Text style={styles.exFieldLabel}>Weight (kg)</Text>
+                <Text style={styles.exFieldLabel}>Weight (lbs)</Text>
                 <TextInput
                   style={styles.smallInput}
                   value={ex.suggested_weight_kg}

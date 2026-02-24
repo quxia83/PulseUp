@@ -26,7 +26,7 @@ function weightMultiplier(level: ExperienceLevel | null): number {
 
 function adjustedWeight(raw: number, multiplier: number): number {
   if (raw <= 0) return 0;
-  return Math.round(raw * multiplier / 2.5) * 2.5;
+  return Math.round(raw * multiplier / 5) * 5;
 }
 
 const LEVEL_LABEL: Record<ExperienceLevel, string> = {
@@ -193,10 +193,10 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
                 <View style={styles.metaRow}>
                   <Text style={styles.exerciseMeta}>
                     {ex.suggested_sets}×{ex.suggested_reps}
-                    {adj > 0 ? ` @ ${adj} kg` : ' · Bodyweight'}
+                    {adj > 0 ? ` @ ${adj} lbs` : ' · Bodyweight'}
                   </Text>
                   {weightChanged && (
-                    <Text style={styles.originalWeight}>was {ex.suggested_weight_kg} kg</Text>
+                    <Text style={styles.originalWeight}>was {ex.suggested_weight_kg} lbs</Text>
                   )}
                 </View>
               </View>

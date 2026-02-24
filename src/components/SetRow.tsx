@@ -26,13 +26,13 @@ export default function SetRow({ setIndex, data, onUpdate, onRemove }: Props) {
       <TextInput
         style={styles.input}
         keyboardType="decimal-pad"
-        placeholder="kg"
+        placeholder="lbs"
         value={data.weight_kg > 0 ? String(data.weight_kg) : ''}
         onChangeText={t => onUpdate('weight_kg', parseFloat(t) || 0)}
         returnKeyType="done"
         selectTextOnFocus
       />
-      <Text style={styles.unit}>kg</Text>
+      <Text style={styles.unit}>lbs</Text>
       <Pressable onPress={onRemove} hitSlop={8} style={styles.removeBtn}>
         <Text style={styles.removeText}>✕</Text>
       </Pressable>

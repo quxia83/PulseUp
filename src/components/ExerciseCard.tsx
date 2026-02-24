@@ -23,23 +23,23 @@ import type { ActiveExercise } from '../types';
  *
  * Bodyweight / cardio  →  45 s
  * Light isolation       →  60 s   (volume < 100)
- * Moderate hypertrophy  →  90 s   (100–299)
- * Heavy compound        → 120 s   (300–499)
- * Max-effort strength   → 180 s   (500–799)
- * Elite / very heavy    → 240 s   (800+)
+ * Moderate hypertrophy  →  90 s   (220–659)
+ * Heavy compound        → 120 s   (660–1099)
+ * Max-effort strength   → 180 s   (1100–1759)
+ * Elite / very heavy    → 240 s   (1760+)
  */
 function calcRestDuration(reps: number, weight_kg: number): number {
   const volume = reps * weight_kg;
   if (volume === 0) return reps >= 20 ? 45 : 60;
-  if (volume >= 800) return 240;
-  if (volume >= 500) return 180;
-  if (volume >= 300) return 120;
-  if (volume >= 100) return 90;
+  if (volume >= 1760) return 240;
+  if (volume >= 1100) return 180;
+  if (volume >= 660)  return 120;
+  if (volume >= 220)  return 90;
   return 60;
 }
 
 function setLabel(reps: number, weight_kg: number): string {
-  return weight_kg > 0 ? `${reps} reps at ${weight_kg} kilos` : `${reps} reps, bodyweight`;
+  return weight_kg > 0 ? `${reps} reps at ${weight_kg} pounds` : `${reps} reps, bodyweight`;
 }
 
 // Lazy-load expo-speech so missing native module doesn't crash the card
@@ -329,7 +329,7 @@ export default function ExerciseCard({ exercise }: Props) {
               {exercise.sets[restForSet ?? 0]
                 ? ` · ${exercise.sets[restForSet ?? 0].reps} reps` +
                   (exercise.sets[restForSet ?? 0].weight_kg > 0
-                    ? ` @ ${exercise.sets[restForSet ?? 0].weight_kg}kg`
+                    ? ` @ ${exercise.sets[restForSet ?? 0].weight_kg} lbs`
                     : ' · BW')
                 : ''}
             </Text>

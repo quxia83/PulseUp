@@ -226,7 +226,7 @@ export default function StatsScreen() {
           <StatTile label="Total Workouts" value={String(stats.totalWorkouts)} />
           <StatTile label="Current Streak" value={`${stats.currentStreak}d`} />
           <StatTile label="Longest Streak" value={`${stats.longestStreak}d`} />
-          <StatTile label="Total Volume" value={`${(stats.totalVolume / 1000).toFixed(1)}t`} />
+          <StatTile label="Total Volume" value={`${(stats.totalVolume / 1000).toFixed(1)}k lbs`} />
         </View>
       )}
 
@@ -244,7 +244,7 @@ export default function StatsScreen() {
       {/* Monthly line chart */}
       {monthly.length > 0 && monthly.some(m => m.volume > 0) && (
         <View style={styles.chartCard}>
-          <Text style={styles.sectionTitle}>Volume per Month (kg)</Text>
+          <Text style={styles.sectionTitle}>Volume per Month (lbs)</Text>
           <PureLineChart
             values={monthly.map(m => m.volume)}
             labels={monthly.map(m => m.monthLabel)}
@@ -273,7 +273,7 @@ export default function StatsScreen() {
           {prs.map(pr => (
             <View key={pr.name} style={styles.listRow}>
               <Text style={styles.listName}>{pr.name}</Text>
-              <Text style={styles.listValue}>{pr.max_weight_kg} kg</Text>
+              <Text style={styles.listValue}>{pr.max_weight_kg} lbs</Text>
             </View>
           ))}
         </View>

@@ -77,6 +77,14 @@ async function createTables(db: SQLite.SQLiteDatabase): Promise<void> {
     await db.execAsync(`ALTER TABLE workouts ADD COLUMN source_routine TEXT`);
   } catch { /* already exists */ }
 
+  // Migration: switch built-in routine weights from kg to lbs (user_version 0→1)
+  const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+  if ((versionRow?.user_version ?? 0) < 1) {
+    await db.runAsync(`DELETE FROM routine_exercises WHERE routine_id IN (SELECT id FROM routines WHERE is_builtin=1)`);
+    await db.runAsync(`DELETE FROM routines WHERE is_builtin=1`);
+    await db.execAsync('PRAGMA user_version = 1');
+  }
+
   // Seed built-in routines idempotently
   await seedBuiltinRoutines(db);
 }
@@ -97,8 +105,8 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
       `SELECT id FROM routines WHERE name='Push Day' AND is_builtin=1`
     );
     if (pushDay) {
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pushDay.id, 'Bench Press', 0, 4, 8, 60);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pushDay.id, 'Overhead Press', 1, 3, 8, 40);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pushDay.id, 'Bench Press', 0, 4, 8, 135);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pushDay.id, 'Overhead Press', 1, 3, 8, 95);
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pushDay.id, 'Tricep Dip', 2, 3, 10, 0);
     }
 
@@ -112,8 +120,8 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
     );
     if (pullDay) {
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pullDay.id, 'Pull-Up', 0, 4, 8, 0);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pullDay.id, 'Barbell Row', 1, 4, 8, 60);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pullDay.id, 'Bicep Curl', 2, 3, 12, 15);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pullDay.id, 'Barbell Row', 1, 4, 8, 135);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, pullDay.id, 'Bicep Curl', 2, 3, 12, 35);
     }
 
     // 3. Squat & Hinge — Lower Body
@@ -125,9 +133,9 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
       `SELECT id FROM routines WHERE name='Squat & Hinge' AND is_builtin=1`
     );
     if (squat) {
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, squat.id, 'Back Squat', 0, 4, 5, 70);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, squat.id, 'Romanian Deadlift', 1, 3, 8, 60);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, squat.id, 'Leg Curl', 2, 3, 12, 40);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, squat.id, 'Back Squat', 0, 4, 5, 155);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, squat.id, 'Romanian Deadlift', 1, 3, 8, 135);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, squat.id, 'Leg Curl', 2, 3, 12, 90);
     }
 
     // 4. 5×5 Strength — Strength
@@ -139,9 +147,9 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
       `SELECT id FROM routines WHERE name='5×5 Strength' AND is_builtin=1`
     );
     if (fiveByFive) {
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fiveByFive.id, 'Squat', 0, 5, 5, 80);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fiveByFive.id, 'Bench Press', 1, 5, 5, 60);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fiveByFive.id, 'Barbell Row', 2, 5, 5, 60);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fiveByFive.id, 'Squat', 0, 5, 5, 175);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fiveByFive.id, 'Bench Press', 1, 5, 5, 135);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fiveByFive.id, 'Barbell Row', 2, 5, 5, 135);
     }
 
     // 5. Tabata Blast — HIIT
@@ -196,7 +204,7 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
     if (abs) {
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, abs.id, 'Plank', 0, 3, 60, 0);
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, abs.id, 'Hanging Leg Raise', 1, 3, 12, 0);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, abs.id, 'Cable Crunch', 2, 3, 15, 20);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, abs.id, 'Cable Crunch', 2, 3, 15, 45);
     }
 
     // 9. Full Body Compound — Full Body
@@ -208,9 +216,9 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
       `SELECT id FROM routines WHERE name='Full Body Compound' AND is_builtin=1`
     );
     if (fullBody) {
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Deadlift', 0, 3, 5, 100);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Deadlift', 0, 3, 5, 225);
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Push-Up', 1, 3, 15, 0);
-      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Dumbbell Row', 2, 3, 10, 20);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Dumbbell Row', 2, 3, 10, 45);
     }
   });
 }

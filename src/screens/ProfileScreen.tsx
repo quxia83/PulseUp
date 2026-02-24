@@ -124,11 +124,11 @@ export default function ProfileScreen() {
         {/* Body Stats */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Body Stats</Text>
-          <NumInput label="Current Weight" value={weight} unit="kg" onChangeText={setWeight} />
+          <NumInput label="Current Weight" value={weight} unit="lbs" onChangeText={setWeight} />
           <View style={styles.divider} />
-          <NumInput label="Target Weight"  value={target} unit="kg" onChangeText={setTarget} />
+          <NumInput label="Target Weight"  value={target} unit="lbs" onChangeText={setTarget} />
           <View style={styles.divider} />
-          <NumInput label="Height"         value={height} unit="cm" onChangeText={setHeight} />
+          <NumInput label="Height"         value={height} unit="in"  onChangeText={setHeight} />
           <View style={styles.divider} />
           <NumInput label="Age"            value={age}    unit="yr" onChangeText={setAge} />
           {bmi && (
