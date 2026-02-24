@@ -1,20 +1,41 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import { WorkoutProvider } from './src/context/WorkoutContext';
+import RootNavigator from './src/navigation/RootNavigator';
+import { getDatabase } from './src/db/client';
+import { requestNotificationPermissions } from './src/services/notifications';
+import { registerBackgroundTask } from './src/services/backgroundTask';
+
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await getDatabase();
+        await requestNotificationPermissions().catch(console.error);
+        await registerBackgroundTask().catch(console.error);
+      } finally {
+        setReady(true);
+        SplashScreen.hideAsync();
+      }
+    }
+    prepare();
+  }, []);
+
+  if (!ready) return null;
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <WorkoutProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </WorkoutProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
