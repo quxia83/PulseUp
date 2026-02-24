@@ -1,7 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
-import ActiveWorkoutScreen from '../screens/ActiveWorkoutScreen';
 import ReminderSettingsScreen from '../screens/ReminderSettingsScreen';
 import type { HomeStackParamList } from './types';
 
@@ -15,11 +14,6 @@ export default function HomeStack() {
         name="ReminderSettings"
         component={ReminderSettingsScreen}
         options={{ title: 'Reminders' }}
-      />
-      <Stack.Screen
-        name="ActiveWorkout"
-        component={ActiveWorkoutScreen}
-        options={{ presentation: 'fullScreenModal', headerShown: false }}
       />
     </Stack.Navigator>
   );

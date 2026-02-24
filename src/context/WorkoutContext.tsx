@@ -6,7 +6,6 @@ const initialState: ActiveWorkoutState = {
   startedAt: null,
   exercises: [],
   notes: '',
-  videoUri: null,
 };
 
 function generateId(): string {
@@ -23,6 +22,7 @@ function reducer(state: ActiveWorkoutState, action: ActiveWorkoutAction): Active
         localId: generateId(),
         name: action.name,
         sets: [{ reps: 0, weight_kg: 0 }],
+        videoUri: null,
       };
       return { ...state, exercises: [...state.exercises, newEx] };
     }
@@ -72,14 +72,26 @@ function reducer(state: ActiveWorkoutState, action: ActiveWorkoutAction): Active
     case 'SET_NOTES':
       return { ...state, notes: action.notes };
 
-    case 'ATTACH_VIDEO':
-      return { ...state, videoUri: action.uri };
-
-    case 'DETACH_VIDEO':
-      return { ...state, videoUri: null };
+    case 'SET_EXERCISE_VIDEO':
+      return {
+        ...state,
+        exercises: state.exercises.map(e =>
+          e.localId === action.localId ? { ...e, videoUri: action.uri } : e
+        ),
+      };
 
     case 'FINISH_WORKOUT':
       return initialState;
+
+    case 'LOAD_ROUTINE': {
+      const loaded: ActiveExercise[] = action.exercises.map(ex => ({
+        localId: generateId(),
+        name: ex.name,
+        sets: ex.sets,
+        videoUri: ex.videoUri,
+      }));
+      return { ...initialState, isActive: true, startedAt: Date.now(), exercises: loaded };
+    }
 
     default:
       return state;

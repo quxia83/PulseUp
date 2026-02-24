@@ -16,17 +16,16 @@ import { useTimer } from '../hooks/useTimer';
 import { useReminderSettings } from '../hooks/useReminderSettings';
 import Timer from '../components/Timer';
 import ExerciseCard from '../components/ExerciseCard';
-import VideoAttachment from '../components/VideoAttachment';
 import { insertWorkout, insertExercisesForWorkout } from '../db/queries';
 import { scheduleInactivityReminder } from '../services/notifications';
 import type { ActiveWorkoutScreenProps } from '../navigation/types';
+// ActiveWorkout is now a root-level modal screen
 
 export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const { state, dispatch } = useWorkout();
   const { elapsed } = useTimer(state.isActive);
   const { settings } = useReminderSettings();
   const insets = useSafeAreaInsets();
-  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,7 +46,6 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
       const workoutId = await insertWorkout({
         duration_seconds: elapsed,
         notes: state.notes || undefined,
-        video_uri: state.videoUri || undefined,
       });
 
       await insertExercisesForWorkout(
@@ -56,6 +54,7 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
           name: ex.name,
           order_index: i,
           sets: ex.sets,
+          video_uri: ex.videoUri,
         })),
       );
 
@@ -130,19 +129,6 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
             numberOfLines={3}
             value={state.notes}
             onChangeText={notes => dispatch({ type: 'SET_NOTES', notes })}
-          />
-
-          <VideoAttachment
-            videoUri={state.videoUri}
-            thumbnailUri={thumbnailUri}
-            onAttach={(uri, thumb) => {
-              dispatch({ type: 'ATTACH_VIDEO', uri });
-              setThumbnailUri(thumb);
-            }}
-            onDetach={() => {
-              dispatch({ type: 'DETACH_VIDEO' });
-              setThumbnailUri(null);
-            }}
           />
 
           <View style={{ height: 40 }} />

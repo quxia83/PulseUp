@@ -1,0 +1,434 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { insertRoutine, updateRoutine, getRoutineById, getRoutineExercises } from '../db/queries';
+import { pickVideoFromGallery } from '../services/videoService';
+import type { RoutineCategory, NewRoutineExerciseInput } from '../types';
+import type { CreateRoutineScreenProps } from '../navigation/types';
+
+const CATEGORIES: RoutineCategory[] = [
+  'Strength', 'Cardio', 'HIIT', 'Mobility',
+  'Upper Body', 'Lower Body', 'Full Body', 'Core',
+];
+
+interface ExerciseRow {
+  name: string;
+  suggested_sets: string;
+  suggested_reps: string;
+  suggested_weight_kg: string;
+  video_url: string;
+}
+
+function makeEmptyExercise(): ExerciseRow {
+  return { name: '', suggested_sets: '3', suggested_reps: '10', suggested_weight_kg: '0', video_url: '' };
+}
+
+// ---- reusable video picker row ----
+interface VideoFieldProps {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+}
+
+function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
+  const [urlModalVisible, setUrlModalVisible] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+
+  function handlePick() {
+    Alert.alert(label, 'Add a video', [
+      {
+        text: 'Camera Roll',
+        onPress: async () => {
+          try {
+            const result = await pickVideoFromGallery();
+            if (result) onChange(result.uri);
+          } catch {
+            Alert.alert('Permission Denied', 'Media library access is required.');
+          }
+        },
+      },
+      {
+        text: 'Paste URL',
+        onPress: () => {
+          setUrlInput(value);
+          setUrlModalVisible(true);
+        },
+      },
+      value ? { text: 'Remove', style: 'destructive', onPress: () => onChange('') } : null,
+      { text: 'Cancel', style: 'cancel' },
+    ].filter(Boolean) as any);
+  }
+
+  const short = value
+    ? value.startsWith('file://') || value.startsWith('ph://')
+      ? 'Local video attached'
+      : value.length > 38 ? value.slice(0, 38) + '…' : value
+    : null;
+
+  return (
+    <>
+      <Pressable style={styles.videoField} onPress={handlePick}>
+        {short ? (
+          <View style={styles.videoFieldFilled}>
+            <Ionicons name="play-circle-outline" size={18} color="#FF6B35" />
+            <Text style={styles.videoFieldUrl} numberOfLines={1}>{short}</Text>
+            <Pressable onPress={() => onChange('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color="#8E8E93" />
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.videoFieldEmpty}>
+            <Ionicons name="videocam-outline" size={18} color="#8E8E93" />
+            <Text style={styles.videoFieldPlaceholder}>Attach video…</Text>
+          </View>
+        )}
+      </Pressable>
+
+      <Modal
+        visible={urlModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUrlModalVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setUrlModalVisible(false)}>
+          <Pressable style={styles.urlModalCard} onPress={() => {}}>
+            <Text style={styles.urlModalTitle}>Paste Video URL</Text>
+            <TextInput
+              style={styles.urlInput}
+              placeholder="https://..."
+              value={urlInput}
+              onChangeText={setUrlInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              autoFocus
+            />
+            <View style={styles.urlModalButtons}>
+              <Pressable onPress={() => setUrlModalVisible(false)} style={styles.urlCancelBtn}>
+                <Text style={styles.urlCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const t = urlInput.trim();
+                  if (t) onChange(t);
+                  setUrlModalVisible(false);
+                }}
+                style={styles.urlUseBtn}
+              >
+                <Text style={styles.urlUseText}>Use URL</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+// ---- main screen ----
+
+export default function CreateRoutineScreen({ route, navigation }: CreateRoutineScreenProps) {
+  const routineId = route?.params?.routineId;
+  const isEditing = routineId != null;
+
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<RoutineCategory>('Strength');
+  const [description, setDescription] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [musicUrl, setMusicUrl] = useState('');
+  const [exercises, setExercises] = useState<ExerciseRow[]>([makeEmptyExercise()]);
+  const [saving, setSaving] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(isEditing);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (!isEditing || !routineId) return;
+    (async () => {
+      const [r, exs] = await Promise.all([
+        getRoutineById(routineId),
+        getRoutineExercises(routineId),
+      ]);
+      if (r) {
+        setName(r.name);
+        setCategory(r.category);
+        setDescription(r.description ?? '');
+        setVideoUrl(r.video_url ?? '');
+        setMusicUrl(r.music_url ?? '');
+      }
+      if (exs.length > 0) {
+        setExercises(exs.map(ex => ({
+          name: ex.name,
+          suggested_sets: String(ex.suggested_sets),
+          suggested_reps: String(ex.suggested_reps),
+          suggested_weight_kg: String(ex.suggested_weight_kg),
+          video_url: ex.video_url ?? '',
+        })));
+      }
+      setLoadingEdit(false);
+    })();
+  }, [routineId, isEditing]);
+
+  function updateExercise(index: number, field: keyof ExerciseRow, value: string) {
+    setExercises(prev => prev.map((ex, i) => i === index ? { ...ex, [field]: value } : ex));
+  }
+
+  function addExercise() {
+    setExercises(prev => [...prev, makeEmptyExercise()]);
+  }
+
+  function removeExercise(index: number) {
+    setExercises(prev => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSave() {
+    if (!name.trim()) {
+      Alert.alert('Validation', 'Please enter a routine name.');
+      return;
+    }
+    const validExercises = exercises.filter(ex => ex.name.trim());
+    if (validExercises.length === 0) {
+      Alert.alert('Validation', 'Add at least one exercise.');
+      return;
+    }
+
+    setSaving(true);
+    const exerciseInputs: NewRoutineExerciseInput[] = validExercises.map((ex, i) => ({
+      name: ex.name.trim(),
+      order_index: i,
+      suggested_sets: parseInt(ex.suggested_sets, 10) || 3,
+      suggested_reps: parseInt(ex.suggested_reps, 10) || 10,
+      suggested_weight_kg: parseFloat(ex.suggested_weight_kg) || 0,
+      video_url: ex.video_url.trim() || undefined,
+    }));
+
+    try {
+      const input = {
+        name: name.trim(),
+        category,
+        description: description.trim() || undefined,
+        video_url: videoUrl.trim() || undefined,
+        music_url: musicUrl.trim() || undefined,
+      };
+
+      if (isEditing && routineId) {
+        await updateRoutine(routineId, input, exerciseInputs);
+      } else {
+        await insertRoutine(input, exerciseInputs);
+      }
+      navigation.goBack();
+    } catch (e) {
+      setSaving(false);
+      Alert.alert('Error', 'Failed to save routine.');
+      console.error(e);
+    }
+  }
+
+  if (loadingEdit) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="#FF6B35" />
+      </View>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.label}>Name *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Push Day"
+          value={name}
+          onChangeText={setName}
+        />
+
+        <Text style={styles.label}>Category *</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catRow}>
+          {CATEGORIES.map(cat => (
+            <Pressable
+              key={cat}
+              style={[styles.catPill, category === cat && styles.catPillActive]}
+              onPress={() => setCategory(cat)}
+            >
+              <Text style={[styles.catPillText, category === cat && styles.catPillTextActive]}>
+                {cat}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          style={[styles.input, styles.multilineInput]}
+          placeholder="Optional description"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={3}
+        />
+
+        <Text style={styles.label}>Reference Video</Text>
+        <VideoPickerField label="Reference Video" value={videoUrl} onChange={setVideoUrl} />
+
+        <Text style={styles.label}>Music / Playlist URL</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="https://..."
+          value={musicUrl}
+          onChangeText={setMusicUrl}
+          autoCapitalize="none"
+          keyboardType="url"
+        />
+
+        <View style={styles.exercisesHeader}>
+          <Text style={styles.sectionTitle}>Exercises</Text>
+          <Pressable onPress={addExercise} style={styles.addExBtn}>
+            <Ionicons name="add-circle-outline" size={20} color="#FF6B35" />
+            <Text style={styles.addExText}>Add</Text>
+          </Pressable>
+        </View>
+
+        {exercises.map((ex, i) => (
+          <View key={i} style={styles.exCard}>
+            <View style={styles.exCardHeader}>
+              <Text style={styles.exCardIndex}>#{i + 1}</Text>
+              <Pressable onPress={() => removeExercise(i)}>
+                <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+              </Pressable>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Exercise name"
+              value={ex.name}
+              onChangeText={v => updateExercise(i, 'name', v)}
+            />
+            <View style={styles.exRow}>
+              <View style={styles.exField}>
+                <Text style={styles.exFieldLabel}>Sets</Text>
+                <TextInput
+                  style={styles.smallInput}
+                  value={ex.suggested_sets}
+                  onChangeText={v => updateExercise(i, 'suggested_sets', v)}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={styles.exField}>
+                <Text style={styles.exFieldLabel}>Reps</Text>
+                <TextInput
+                  style={styles.smallInput}
+                  value={ex.suggested_reps}
+                  onChangeText={v => updateExercise(i, 'suggested_reps', v)}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={styles.exField}>
+                <Text style={styles.exFieldLabel}>Weight (kg)</Text>
+                <TextInput
+                  style={styles.smallInput}
+                  value={ex.suggested_weight_kg}
+                  onChangeText={v => updateExercise(i, 'suggested_weight_kg', v)}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+            <Text style={[styles.label, { marginTop: 8 }]}>Exercise Video</Text>
+            <VideoPickerField
+              label="Exercise Video"
+              value={ex.video_url}
+              onChange={v => updateExercise(i, 'video_url', v)}
+            />
+          </View>
+        ))}
+
+        <Pressable
+          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={styles.saveText}>
+            {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Create Routine'}
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F2F2F7' },
+  content: { padding: 16, gap: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: '#6E6E73', textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 10, marginBottom: 4 },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    color: '#1C1C1E',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#D1D1D6',
+  },
+  multilineInput: { minHeight: 80, textAlignVertical: 'top' },
+  catRow: { maxHeight: 46, marginBottom: 4 },
+  catPill: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#E5E5EA', marginRight: 8 },
+  catPillActive: { backgroundColor: '#FF6B35' },
+  catPillText: { fontSize: 13, fontWeight: '600', color: '#3C3C43' },
+  catPillTextActive: { color: '#fff' },
+  // Video picker field
+  videoField: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#D1D1D6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  videoFieldEmpty: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  videoFieldFilled: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  videoFieldPlaceholder: { fontSize: 15, color: '#8E8E93', flex: 1 },
+  videoFieldUrl: { fontSize: 14, color: '#FF6B35', flex: 1 },
+  // URL modal
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  urlModalCard: { backgroundColor: '#fff', borderRadius: 14, padding: 20, width: '85%' },
+  urlModalTitle: { fontSize: 16, fontWeight: '700', color: '#1C1C1E', marginBottom: 12 },
+  urlInput: { borderWidth: 1, borderColor: '#D1D1D6', borderRadius: 8, padding: 10, fontSize: 14, color: '#1C1C1E', marginBottom: 14 },
+  urlModalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  urlCancelBtn: { paddingHorizontal: 12, paddingVertical: 8 },
+  urlCancelText: { color: '#8E8E93', fontSize: 15 },
+  urlUseBtn: { backgroundColor: '#FF6B35', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  urlUseText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  // Exercise rows
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E' },
+  exercisesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  addExBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  addExText: { color: '#FF6B35', fontSize: 15, fontWeight: '600' },
+  exCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 8, marginTop: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E5E5EA' },
+  exCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  exCardIndex: { fontSize: 13, fontWeight: '700', color: '#8E8E93' },
+  exRow: { flexDirection: 'row', gap: 10 },
+  exField: { flex: 1, gap: 4 },
+  exFieldLabel: { fontSize: 11, fontWeight: '600', color: '#8E8E93', textTransform: 'uppercase' },
+  smallInput: { backgroundColor: '#F2F2F7', borderRadius: 8, padding: 8, fontSize: 15, textAlign: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: '#D1D1D6' },
+  saveBtn: { backgroundColor: '#FF6B35', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 20, shadowColor: '#FF6B35', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  saveBtnDisabled: { backgroundColor: '#ccc' },
+  saveText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+});

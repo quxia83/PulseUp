@@ -14,6 +14,7 @@ export interface Exercise {
   name: string;
   order_index: number;
   sets: SetData[];
+  video_uri: string | null;
 }
 
 export interface SetData {
@@ -26,7 +27,6 @@ export interface SetData {
 export interface NewWorkoutInput {
   duration_seconds: number;
   notes?: string;
-  video_uri?: string;
 }
 
 export interface NewExerciseInput {
@@ -34,6 +34,7 @@ export interface NewExerciseInput {
   name: string;
   order_index: number;
   sets: SetData[];
+  video_uri?: string | null;
 }
 
 // --- Active workout state (in-memory only, during a session) ---
@@ -42,6 +43,7 @@ export interface ActiveExercise {
   localId: string;
   name: string;
   sets: SetData[];
+  videoUri: string | null;
 }
 
 export interface ActiveWorkoutState {
@@ -49,7 +51,6 @@ export interface ActiveWorkoutState {
   startedAt: number | null; // Date.now() ms
   exercises: ActiveExercise[];
   notes: string;
-  videoUri: string | null;
 }
 
 export type ActiveWorkoutAction =
@@ -61,11 +62,84 @@ export type ActiveWorkoutAction =
   | { type: 'REMOVE_SET'; localId: string; setIndex: number }
   | { type: 'UPDATE_SET'; localId: string; setIndex: number; field: 'reps' | 'weight_kg'; value: number }
   | { type: 'SET_NOTES'; notes: string }
-  | { type: 'ATTACH_VIDEO'; uri: string }
-  | { type: 'DETACH_VIDEO' }
-  | { type: 'FINISH_WORKOUT' };
+  | { type: 'SET_EXERCISE_VIDEO'; localId: string; uri: string | null }
+  | { type: 'FINISH_WORKOUT' }
+  | { type: 'LOAD_ROUTINE'; exercises: Array<{ name: string; sets: SetData[]; videoUri: string | null }> };
 
 export interface ReminderSettings {
   thresholdDays: number;
   enabled: boolean;
+}
+
+// --- Routines ---
+
+export type RoutineCategory =
+  | 'Strength' | 'Cardio' | 'HIIT' | 'Mobility'
+  | 'Upper Body' | 'Lower Body' | 'Full Body' | 'Core';
+
+export interface RoutineExercise {
+  id: number;
+  routine_id: number;
+  name: string;
+  order_index: number;
+  suggested_sets: number;
+  suggested_reps: number;
+  suggested_weight_kg: number;
+  video_url: string | null;
+}
+
+export interface Routine {
+  id: number;
+  name: string;
+  category: RoutineCategory;
+  description: string | null;
+  video_url: string | null;
+  music_url: string | null;
+  is_builtin: number; // 0 | 1
+}
+
+export interface NewRoutineInput {
+  name: string;
+  category: RoutineCategory;
+  description?: string;
+  video_url?: string;
+  music_url?: string;
+}
+
+export interface NewRoutineExerciseInput {
+  name: string;
+  order_index: number;
+  suggested_sets: number;
+  suggested_reps: number;
+  suggested_weight_kg: number;
+  video_url?: string;
+}
+
+// --- Stats ---
+
+export interface WorkoutStats {
+  totalWorkouts: number;
+  currentStreak: number;
+  longestStreak: number;
+  totalVolume: number;
+}
+
+export interface WeeklyWorkoutCount {
+  weekLabel: string;
+  count: number;
+}
+
+export interface MonthlyVolume {
+  monthLabel: string;
+  volume: number;
+}
+
+export interface ExerciseFrequency {
+  name: string;
+  count: number;
+}
+
+export interface PersonalRecord {
+  name: string;
+  max_weight_kg: number;
 }
