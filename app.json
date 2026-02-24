@@ -3,7 +3,7 @@
     "name": "PulseUp",
     "slug": "PulseUp",
     "scheme": "pulseup",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -41,6 +41,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pulseup.app",
+      "buildNumber": "2",
       "infoPlist": {
         "UIBackgroundModes": [
           "fetch",
@@ -53,6 +54,7 @@
     },
     "android": {
       "package": "com.pulseup.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
