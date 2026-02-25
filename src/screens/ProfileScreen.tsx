@@ -3,21 +3,23 @@ import {
   View, Text, TextInput, Pressable, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProfile } from '../hooks/useProfile';
+import { useLanguage } from '../hooks/useLanguage';
 import type { FitnessGoal, ExperienceLevel, UserProfile } from '../types';
 
-const GOALS: { key: FitnessGoal; label: string; icon: string }[] = [
-  { key: 'lose_weight',       label: 'Lose Weight',   icon: '🔥' },
-  { key: 'build_muscle',      label: 'Build Muscle',  icon: '💪' },
-  { key: 'maintain',          label: 'Maintain',      icon: '⚖️' },
-  { key: 'improve_endurance', label: 'Endurance',     icon: '🏃' },
+const GOAL_KEYS: { key: FitnessGoal; tKey: string; icon: string }[] = [
+  { key: 'lose_weight',       tKey: 'profile.lose_weight',   icon: '🔥' },
+  { key: 'build_muscle',      tKey: 'profile.build_muscle',  icon: '💪' },
+  { key: 'maintain',          tKey: 'profile.maintain',      icon: '⚖️' },
+  { key: 'improve_endurance', tKey: 'profile.endurance',     icon: '🏃' },
 ];
 
-const LEVELS: { key: ExperienceLevel; label: string; desc: string }[] = [
-  { key: 'beginner',     label: 'Beginner',     desc: '< 1 year' },
-  { key: 'intermediate', label: 'Intermediate', desc: '1–3 years' },
-  { key: 'advanced',     label: 'Advanced',     desc: '3+ years' },
+const LEVEL_KEYS: { key: ExperienceLevel; tKey: string; descKey: string }[] = [
+  { key: 'beginner',     tKey: 'profile.beginner',     descKey: 'profile.exp_beginner' },
+  { key: 'intermediate', tKey: 'profile.intermediate', descKey: 'profile.exp_intermediate' },
+  { key: 'advanced',     tKey: 'profile.advanced',     descKey: 'profile.exp_advanced' },
 ];
 
 function NumInput({
@@ -67,8 +69,10 @@ const numStyles = StyleSheet.create({
 });
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { profile, save, loading } = useProfile();
+  const { language, setLanguage } = useLanguage();
 
   // local edit state (strings for text inputs)
   const [weight, setWeight]       = useState('');
@@ -138,13 +142,13 @@ export default function ProfileScreen() {
       >
         {/* Body Stats */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Body Stats</Text>
-          <NumInput label="Current Weight" value={weight} unit="lbs" onChangeText={setWeight} />
+          <Text style={styles.sectionTitle}>{t('profile.body_stats')}</Text>
+          <NumInput label={t('profile.current_weight')} value={weight} unit={t('profile.lbs')} onChangeText={setWeight} />
           <View style={styles.divider} />
-          <NumInput label="Target Weight"  value={target} unit="lbs" onChangeText={setTarget} />
+          <NumInput label={t('profile.target_weight')}  value={target} unit={t('profile.lbs')} onChangeText={setTarget} />
           <View style={styles.divider} />
           <View style={numStyles.row}>
-            <Text style={numStyles.label}>Height</Text>
+            <Text style={numStyles.label}>{t('profile.height')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <TextInput
                 style={[numStyles.input, { width: 24 }]}
@@ -154,7 +158,7 @@ export default function ProfileScreen() {
                 placeholder="—"
                 placeholderTextColor="#C7C7CC"
               />
-              <Text style={numStyles.unit}>ft</Text>
+              <Text style={numStyles.unit}>{t('profile.ft')}</Text>
               <TextInput
                 style={[numStyles.input, { width: 24, marginLeft: 6 }]}
                 value={heightIn}
@@ -163,14 +167,14 @@ export default function ProfileScreen() {
                 placeholder="—"
                 placeholderTextColor="#C7C7CC"
               />
-              <Text style={numStyles.unit}>in</Text>
+              <Text style={numStyles.unit}>{t('profile.in')}</Text>
             </View>
           </View>
           <View style={styles.divider} />
-          <NumInput label="Age"            value={age}    unit="yr" onChangeText={setAge} />
+          <NumInput label={t('profile.age')} value={age} unit={t('profile.yr')} onChangeText={setAge} />
           {bmi && (
             <View style={styles.bmiRow}>
-              <Text style={styles.bmiLabel}>BMI</Text>
+              <Text style={styles.bmiLabel}>{t('profile.bmi')}</Text>
               <Text style={styles.bmiValue}>{bmi}</Text>
             </View>
           )}
@@ -178,9 +182,9 @@ export default function ProfileScreen() {
 
         {/* Fitness Goal */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Fitness Goal</Text>
+          <Text style={styles.sectionTitle}>{t('profile.fitness_goal')}</Text>
           <View style={styles.goalGrid}>
-            {GOALS.map(g => (
+            {GOAL_KEYS.map(g => (
               <Pressable
                 key={g.key}
                 style={[styles.goalTile, goal === g.key && styles.goalTileActive]}
@@ -188,7 +192,7 @@ export default function ProfileScreen() {
               >
                 <Text style={styles.goalIcon}>{g.icon}</Text>
                 <Text style={[styles.goalLabel, goal === g.key && styles.goalLabelActive]}>
-                  {g.label}
+                  {t(g.tKey)}
                 </Text>
               </Pressable>
             ))}
@@ -197,9 +201,9 @@ export default function ProfileScreen() {
 
         {/* Experience Level */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Experience Level</Text>
+          <Text style={styles.sectionTitle}>{t('profile.experience_level')}</Text>
           <View style={styles.levelList}>
-            {LEVELS.map(l => (
+            {LEVEL_KEYS.map(l => (
               <Pressable
                 key={l.key}
                 style={[styles.levelRow, level === l.key && styles.levelRowActive]}
@@ -210,10 +214,28 @@ export default function ProfileScreen() {
                 </View>
                 <View>
                   <Text style={[styles.levelLabel, level === l.key && styles.levelLabelActive]}>
-                    {l.label}
+                    {t(l.tKey)}
                   </Text>
-                  <Text style={styles.levelDesc}>{l.desc}</Text>
+                  <Text style={styles.levelDesc}>{t(l.descKey)}</Text>
                 </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Language */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+          <View style={styles.langRow}>
+            {(['en', 'zh'] as const).map(lng => (
+              <Pressable
+                key={lng}
+                style={[styles.langPill, language === lng && styles.langPillActive]}
+                onPress={() => setLanguage(lng)}
+              >
+                <Text style={[styles.langPillText, language === lng && styles.langPillTextActive]}>
+                  {t(lng === 'en' ? 'profile.lang_en' : 'profile.lang_zh')}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -221,7 +243,7 @@ export default function ProfileScreen() {
 
         {/* Save */}
         <Pressable style={[styles.saveBtn, saved && styles.saveBtnDone]} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>{saved ? 'Saved ✓' : 'Save Profile'}</Text>
+          <Text style={styles.saveBtnText}>{saved ? t('profile.saved') : t('profile.save_profile')}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -295,6 +317,19 @@ const styles = StyleSheet.create({
   levelLabel: { fontSize: 15, fontWeight: '600', color: '#1C1C1E' },
   levelLabelActive: { color: '#FF6B35' },
   levelDesc: { fontSize: 12, color: '#8E8E93' },
+  langRow: { flexDirection: 'row', gap: 10 },
+  langPill: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  langPillActive: { borderColor: '#FF6B35', backgroundColor: '#FFF4F0' },
+  langPillText: { fontSize: 15, fontWeight: '600', color: '#3C3C43' },
+  langPillTextActive: { color: '#FF6B35' },
   saveBtn: {
     backgroundColor: '#FF6B35',
     borderRadius: 14,

@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import HomeStack from './HomeStack';
 import HistoryStack from './HistoryStack';
 import RoutinesStack from './RoutinesStack';
@@ -14,6 +15,7 @@ const Root = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 function BottomTabs() {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -32,18 +34,18 @@ function BottomTabs() {
         tabBarInactiveTintColor: '#8E8E93',
       })}
     >
-      <Tab.Screen name="RoutinesTab" component={RoutinesStack} options={{ title: 'Routines' }} />
-      <Tab.Screen name="HomeTab" component={HomeStack} options={{ title: 'Workout' }} />
+      <Tab.Screen name="RoutinesTab" component={RoutinesStack} options={{ title: t('nav.routines') }} />
+      <Tab.Screen name="HomeTab" component={HomeStack} options={{ title: t('nav.workout') }} />
       <Tab.Screen
         name="StatsTab"
         component={StatsScreen}
-        options={{ title: 'Stats', headerShown: true, headerTitle: 'Stats' }}
+        options={{ title: t('nav.stats'), headerShown: true, headerTitle: t('nav.stats') }}
       />
-      <Tab.Screen name="HistoryTab" component={HistoryStack} options={{ title: 'History' }} />
+      <Tab.Screen name="HistoryTab" component={HistoryStack} options={{ title: t('nav.history') }} />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
-        options={{ title: 'Profile', headerShown: true, headerTitle: 'My Profile' }}
+        options={{ title: t('nav.profile'), headerShown: true, headerTitle: t('nav.my_profile') }}
       />
     </Tab.Navigator>
   );

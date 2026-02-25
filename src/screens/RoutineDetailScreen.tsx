@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getRoutineById, getRoutineExercises, getProfile } from '../db/queries';
 import { useWorkout } from '../context/WorkoutContext';
@@ -29,12 +30,6 @@ function adjustedWeight(raw: number, multiplier: number): number {
   return Math.round(raw * multiplier / 5) * 5;
 }
 
-const LEVEL_LABEL: Record<ExperienceLevel, string> = {
-  beginner:     'Beginner (60% weight)',
-  intermediate: 'Intermediate',
-  advanced:     'Advanced (120% weight)',
-};
-
 const CATEGORY_COLORS: Record<string, string> = {
   Strength: '#FF6B35',
   Cardio: '#34C759',
@@ -51,6 +46,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function RoutineDetailScreen({ route, navigation }: RoutineDetailScreenProps) {
+  const { t } = useTranslation();
   const { routineId } = route.params;
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [exercises, setExercises] = useState<RoutineExercise[]>([]);
@@ -59,6 +55,12 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
   const { state, dispatch } = useWorkout();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+
+  const LEVEL_LABEL: Record<ExperienceLevel, string> = {
+    beginner:     t('routine_detail.level_beginner'),
+    intermediate: t('routine_detail.level_intermediate'),
+    advanced:     t('routine_detail.level_advanced'),
+  };
 
   const multiplier = weightMultiplier(experienceLevel);
 
@@ -84,12 +86,12 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
             onPress={() => navigation.navigate('CreateRoutine', { routineId: routine.id })}
             style={{ paddingHorizontal: 8, paddingVertical: 4, justifyContent: 'center', alignItems: 'center' }}
           >
-            <Text style={{ color: '#FF6B35', fontSize: 16 }}>Edit</Text>
+            <Text style={{ color: '#FF6B35', fontSize: 16 }}>{t('routine_detail.edit')}</Text>
           </Pressable>
         ),
       });
     }
-  }, [navigation, routine]);
+  }, [navigation, routine, t]);
 
   const handleStartWorkout = useCallback(() => {
     const doStart = () => {
@@ -110,17 +112,17 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
 
     if (state.isActive && state.exercises.length > 0) {
       Alert.alert(
-        'Replace Current Workout?',
-        'You have an active workout. Starting this routine will replace it.',
+        t('routine_detail.replace_title'),
+        t('routine_detail.replace_message'),
         [
-          { text: 'Keep Current', style: 'cancel' },
-          { text: 'Replace', style: 'destructive', onPress: doStart },
+          { text: t('routine_detail.keep_current'), style: 'cancel' },
+          { text: t('routine_detail.replace'), style: 'destructive', onPress: doStart },
         ]
       );
     } else {
       doStart();
     }
-  }, [exercises, multiplier, state, dispatch, rootNav]);
+  }, [exercises, multiplier, state, dispatch, rootNav, t]);
 
   if (loading) {
     return (
@@ -133,7 +135,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
   if (!routine) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: '#8E8E93' }}>Routine not found.</Text>
+        <Text style={{ color: '#8E8E93' }}>{t('routine_detail.not_found')}</Text>
       </View>
     );
   }
@@ -147,7 +149,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
         <View style={styles.headerCard}>
           <Text style={styles.routineName}>{routine.name}</Text>
           <View style={[styles.categoryBadge, { backgroundColor: catColor + '22' }]}>
-            <Text style={[styles.categoryText, { color: catColor }]}>{routine.category}</Text>
+            <Text style={[styles.categoryText, { color: catColor }]}>{t(`categories.${routine.category}`)}</Text>
           </View>
           {routine.description ? (
             <Text style={styles.description}>{routine.description}</Text>
@@ -161,7 +163,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
             onPress={() => Linking.openURL(routine.music_url!)}
           >
             <Ionicons name="musical-notes-outline" size={20} color="#FF6B35" />
-            <Text style={styles.linkText}>Open Music</Text>
+            <Text style={styles.linkText}>{t('routine_detail.open_music')}</Text>
             <Ionicons name="chevron-forward" size={16} color="#8E8E93" style={{ marginLeft: 'auto' }} />
           </Pressable>
         ) : null}
@@ -173,14 +175,14 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
             onPress={() => Linking.openURL(routine.video_url!)}
           >
             <Ionicons name="play-circle-outline" size={20} color="#FF6B35" />
-            <Text style={styles.linkText}>Watch Reference</Text>
+            <Text style={styles.linkText}>{t('routine_detail.watch_reference')}</Text>
             <Ionicons name="chevron-forward" size={16} color="#8E8E93" style={{ marginLeft: 'auto' }} />
           </Pressable>
         ) : null}
 
         {/* Exercise list */}
         <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Exercises</Text>
+          <Text style={styles.sectionTitle}>{t('routine_detail.exercises')}</Text>
           {experienceLevel && experienceLevel !== 'intermediate' && (
             <View style={styles.levelBadge}>
               <Text style={styles.levelBadgeText}>{LEVEL_LABEL[experienceLevel]}</Text>
@@ -198,10 +200,10 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
                 <View style={styles.metaRow}>
                   <Text style={styles.exerciseMeta}>
                     {ex.suggested_sets}×{ex.suggested_reps}
-                    {adj > 0 ? ` @ ${adj} lbs` : ' · Bodyweight'}
+                    {adj > 0 ? ` ${t('routine_detail.weight_at', { weight: adj })}` : ` · ${t('routine_detail.bodyweight')}`}
                   </Text>
                   {weightChanged && (
-                    <Text style={styles.originalWeight}>was {ex.suggested_weight_kg} lbs</Text>
+                    <Text style={styles.originalWeight}>{t('routine_detail.weight_was', { weight: ex.suggested_weight_kg })}</Text>
                   )}
                 </View>
               </View>
@@ -221,7 +223,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
       {/* Start Workout button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable style={styles.startBtn} onPress={handleStartWorkout}>
-          <Text style={styles.startText}>Start Workout</Text>
+          <Text style={styles.startText}>{t('routine_detail.start_workout')}</Text>
         </Pressable>
       </View>
     </View>

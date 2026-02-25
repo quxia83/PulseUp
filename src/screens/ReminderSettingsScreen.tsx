@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Switch, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useReminderSettings } from '../hooks/useReminderSettings';
 import {
   scheduleInactivityReminder,
@@ -12,13 +13,14 @@ import type { ReminderSettingsScreenProps } from '../navigation/types';
 
 const THRESHOLD_OPTIONS = [1, 2, 3, 5, 7, 14];
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
 export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
+  const { t } = useTranslation();
   const { settings, save } = useReminderSettings();
   const insets = useSafeAreaInsets();
 
@@ -82,7 +84,7 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
   }
 
   const { scheduledHour: h, scheduledMinute: m } = settings;
-  const ampm = h < 12 ? 'AM' : 'PM';
+  const ampm = h < 12 ? t('reminders.am') : t('reminders.pm');
   const displayHour = h % 12 === 0 ? 12 : h % 12;
 
   return (
@@ -94,8 +96,8 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View>
-            <Text style={styles.cardTitle}>Planned Workouts</Text>
-            <Text style={styles.cardSubtitle}>Remind me on my workout days</Text>
+            <Text style={styles.cardTitle}>{t('reminders.planned_workouts')}</Text>
+            <Text style={styles.cardSubtitle}>{t('reminders.remind_workout_days')}</Text>
           </View>
           <Switch
             value={settings.scheduledEnabled}
@@ -104,9 +106,9 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
           />
         </View>
 
-        <Text style={styles.fieldLabel}>Workout Days</Text>
+        <Text style={styles.fieldLabel}>{t('reminders.workout_days')}</Text>
         <View style={styles.dayGrid}>
-          {DAYS.map((label, i) => {
+          {DAY_KEYS.map((key, i) => {
             const active = settings.scheduledDays.includes(i);
             return (
               <Pressable
@@ -114,13 +116,13 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
                 style={[styles.dayPill, active && styles.dayPillActive]}
                 onPress={() => handleToggleDay(i)}
               >
-                <Text style={[styles.dayText, active && styles.dayTextActive]}>{label}</Text>
+                <Text style={[styles.dayText, active && styles.dayTextActive]}>{t(`reminders.${key}`)}</Text>
               </Pressable>
             );
           })}
         </View>
 
-        <Text style={styles.fieldLabel}>Reminder Time</Text>
+        <Text style={styles.fieldLabel}>{t('reminders.reminder_time')}</Text>
         <View style={styles.timePicker}>
           {/* Hours */}
           <View style={styles.timeUnit}>
@@ -148,12 +150,14 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
 
         {settings.scheduledEnabled && settings.scheduledDays.length > 0 && (
           <Text style={styles.hint}>
-            You'll be reminded every{' '}
-            {settings.scheduledDays.map(d => DAYS[d]).join(', ')} at {pad(displayHour)}:{pad(m)} {ampm}.
+            {t('reminders.scheduled_hint', {
+              days: settings.scheduledDays.map(d => t(`reminders.${DAY_KEYS[d]}`)).join(', '),
+              time: `${pad(displayHour)}:${pad(m)} ${ampm}`,
+            })}
           </Text>
         )}
         {settings.scheduledEnabled && settings.scheduledDays.length === 0 && (
-          <Text style={[styles.hint, { color: '#FF3B30' }]}>Select at least one day.</Text>
+          <Text style={[styles.hint, { color: '#FF3B30' }]}>{t('reminders.select_day')}</Text>
         )}
       </View>
 
@@ -161,8 +165,8 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View>
-            <Text style={styles.cardTitle}>Inactivity Reminder</Text>
-            <Text style={styles.cardSubtitle}>Alert when I haven't trained in a while</Text>
+            <Text style={styles.cardTitle}>{t('reminders.inactivity_title')}</Text>
+            <Text style={styles.cardSubtitle}>{t('reminders.inactivity_subtitle')}</Text>
           </View>
           <Switch
             value={settings.enabled}
@@ -171,7 +175,7 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
           />
         </View>
 
-        <Text style={styles.fieldLabel}>Remind me after (days without a workout)</Text>
+        <Text style={styles.fieldLabel}>{t('reminders.inactivity_label')}</Text>
         <View style={styles.pills}>
           {THRESHOLD_OPTIONS.map(d => (
             <Pressable
@@ -180,7 +184,7 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
               onPress={() => handleThresholdSelect(d)}
             >
               <Text style={[styles.pillText, settings.thresholdDays === d && styles.pillTextActive]}>
-                {d}d
+                {t('reminders.threshold_days', { days: d })}
               </Text>
             </Pressable>
           ))}
@@ -188,8 +192,7 @@ export default function ReminderSettingsScreen(_: ReminderSettingsScreenProps) {
 
         {settings.enabled && (
           <Text style={styles.hint}>
-            You'll get a reminder if you haven't logged a workout in{' '}
-            {settings.thresholdDays} day{settings.thresholdDays !== 1 ? 's' : ''}.
+            {t('reminders.inactivity_hint', { days: settings.thresholdDays })}
           </Text>
         )}
       </View>

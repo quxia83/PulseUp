@@ -11,6 +11,7 @@ import {
   Vibration,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useTranslation } from 'react-i18next';
 import SetRow from './SetRow';
 import { useWorkout } from '../context/WorkoutContext';
 import { pickVideoFromGallery } from '../services/videoService';
@@ -38,15 +39,11 @@ function calcRestDuration(reps: number, weight_kg: number): number {
   return 60;
 }
 
-function setLabel(reps: number, weight_kg: number): string {
-  return weight_kg > 0 ? `${reps} reps at ${weight_kg} pounds` : `${reps} reps, bodyweight`;
-}
-
 // Lazy-load expo-speech so missing native module doesn't crash the card
-async function safeSpeak(text: string) {
+async function safeSpeak(text: string, lang: string = 'en-US') {
   try {
     const Speech = await import('expo-speech');
-    Speech.speak(text, { language: 'en-US' });
+    Speech.speak(text, { language: lang });
   } catch {
     // Native module not yet linked — silent fallback
   }
@@ -63,7 +60,15 @@ interface Props {
 }
 
 export default function ExerciseCard({ exercise }: Props) {
+  const { t, i18n } = useTranslation();
   const { dispatch } = useWorkout();
+  const speechLang = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
+
+  function setLabel(reps: number, weight_kg: number): string {
+    return weight_kg > 0
+      ? t('exercise.voice_reps_weight', { reps, weight: weight_kg })
+      : t('exercise.voice_reps_bw', { reps });
+  }
   const [urlModalVisible, setUrlModalVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [playerModalVisible, setPlayerModalVisible] = useState(false);
@@ -88,9 +93,9 @@ export default function ExerciseCard({ exercise }: Props) {
       if (restForSet !== null) {
         const s = exercise.sets[restForSet];
         const text = s
-          ? `Time for set ${restForSet + 1}. ${exercise.name}. ${setLabel(s.reps, s.weight_kg)}.`
-          : `Time for set ${restForSet + 1}. ${exercise.name}.`;
-        safeSpeak(text);
+          ? t('exercise.voice_next_set', { set: restForSet + 1, name: exercise.name, detail: setLabel(s.reps, s.weight_kg) })
+          : t('exercise.voice_next_set_plain', { set: restForSet + 1, name: exercise.name });
+        safeSpeak(text, speechLang);
       }
       setRestSecondsLeft(null);
       setRestForSet(null);
@@ -101,13 +106,13 @@ export default function ExerciseCard({ exercise }: Props) {
     const halfway = Math.floor(total / 2);
 
     if (restSecondsLeft === halfway && total >= 60) {
-      safeSpeak(`Halfway. ${restSecondsLeft} seconds remaining.`);
+      safeSpeak(t('exercise.voice_halfway', { seconds: restSecondsLeft }), speechLang);
     } else if (restSecondsLeft === 30 && total > 30) {
-      safeSpeak('30 seconds remaining.');
+      safeSpeak(t('exercise.voice_30s'), speechLang);
     } else if (restSecondsLeft === 10) {
-      safeSpeak('10 seconds.');
+      safeSpeak(t('exercise.voice_10s'), speechLang);
     } else if (restSecondsLeft <= 3) {
-      safeSpeak(String(restSecondsLeft));
+      safeSpeak(String(restSecondsLeft), speechLang);
     }
 
     const id = setTimeout(() => setRestSecondsLeft(prev => (prev ?? 1) - 1), 1000);
@@ -139,14 +144,14 @@ export default function ExerciseCard({ exercise }: Props) {
       const restDuration = calcRestDuration(doneSet.reps, doneSet.weight_kg);
       // Start rest — short buzz + spoken start cue
       Vibration.vibrate(80);
-      safeSpeak(`Rest. ${restDuration} seconds.`);
+      safeSpeak(t('exercise.voice_rest', { seconds: restDuration }), speechLang);
       restTotalRef.current = restDuration;
       setRestForSet(nextIndex);
       setRestSecondsLeft(restDuration);
     } else {
       // All sets done — celebratory buzz
       Vibration.vibrate([0, 100, 80, 100, 80, 200]);
-      safeSpeak(`${exercise.name} complete!`);
+      safeSpeak(t('exercise.voice_complete', { name: exercise.name }), speechLang);
     }
   }
 
@@ -154,9 +159,9 @@ export default function ExerciseCard({ exercise }: Props) {
     if (restForSet !== null) {
       const s = exercise.sets[restForSet];
       const text = s
-        ? `Set ${restForSet + 1}. ${exercise.name}. ${setLabel(s.reps, s.weight_kg)}.`
-        : `Set ${restForSet + 1}. ${exercise.name}.`;
-      safeSpeak(text);
+        ? t('exercise.voice_skip_set', { set: restForSet + 1, name: exercise.name, detail: setLabel(s.reps, s.weight_kg) })
+        : t('exercise.voice_skip_set_plain', { set: restForSet + 1, name: exercise.name });
+      safeSpeak(text, speechLang);
     }
     setRestSecondsLeft(null);
     setRestForSet(null);
@@ -201,16 +206,16 @@ export default function ExerciseCard({ exercise }: Props) {
 
   // ── Video actions ──
   function handleAddVideo() {
-    Alert.alert('Add Reference Video', 'Choose a source', [
+    Alert.alert(t('exercise.add_ref_video'), t('exercise.choose_source'), [
       {
-        text: 'Camera Roll',
+        text: t('exercise.camera_roll'),
         onPress: async () => {
           const result = await pickVideoFromGallery();
           if (result) dispatch({ type: 'SET_EXERCISE_VIDEO', localId: exercise.localId, uri: result.uri });
         },
       },
-      { text: 'Paste URL', onPress: () => { setUrlInput(''); setUrlModalVisible(true); } },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('exercise.paste_url'), onPress: () => { setUrlInput(''); setUrlModalVisible(true); } },
+      { text: t('exercise.cancel'), style: 'cancel' },
     ]);
   }
 
@@ -242,7 +247,7 @@ export default function ExerciseCard({ exercise }: Props) {
         <View style={styles.nameWrapper}>
           <TextInput
             style={styles.nameInput}
-            placeholder="Exercise name"
+            placeholder={t('exercise.exercise_name')}
             value={exercise.name}
             onChangeText={handleNameChange}
             onBlur={() => setTimeout(() => setSuggestions([]), 150)}
@@ -258,7 +263,7 @@ export default function ExerciseCard({ exercise }: Props) {
           )}
         </View>
         <Pressable onPress={() => dispatch({ type: 'REMOVE_EXERCISE', localId: exercise.localId })}>
-          <Text style={styles.deleteText}>Remove</Text>
+          <Text style={styles.deleteText}>{t('exercise.remove')}</Text>
         </Pressable>
       </View>
 
@@ -267,15 +272,15 @@ export default function ExerciseCard({ exercise }: Props) {
         {exercise.videoUri ? (
           <>
             <Pressable onPress={handleWatch} style={styles.watchBtn}>
-              <Text style={styles.watchText}>▶ Watch</Text>
+              <Text style={styles.watchText}>{t('exercise.watch')}</Text>
             </Pressable>
             <Pressable onPress={handleRemoveVideo} style={styles.removeVideoBtn}>
-              <Text style={styles.removeVideoText}>Remove</Text>
+              <Text style={styles.removeVideoText}>{t('exercise.remove_video')}</Text>
             </Pressable>
           </>
         ) : (
           <Pressable onPress={handleAddVideo} style={styles.addVideoBtn}>
-            <Text style={styles.addVideoText}>+ Add Video</Text>
+            <Text style={styles.addVideoText}>{t('exercise.add_video')}</Text>
           </Pressable>
         )}
       </View>
@@ -314,20 +319,20 @@ export default function ExerciseCard({ exercise }: Props) {
       {!hasVideo && restSecondsLeft !== null && (
         <View style={styles.restBanner}>
           <View style={styles.restInfo}>
-            <Text style={styles.restLabel}>REST</Text>
+            <Text style={styles.restLabel}>{t('exercise.rest_label')}</Text>
             <Text style={styles.restTimer}>{restSecondsLeft}s</Text>
             <Text style={styles.restNext}>
-              Next: Set {(restForSet ?? 0) + 1}
-              {exercise.sets[restForSet ?? 0]
-                ? ` · ${exercise.sets[restForSet ?? 0].reps} reps` +
-                  (exercise.sets[restForSet ?? 0].weight_kg > 0
-                    ? ` @ ${exercise.sets[restForSet ?? 0].weight_kg} lbs`
-                    : ' · BW')
-                : ''}
+              {(() => {
+                const si = restForSet ?? 0;
+                const s = exercise.sets[si];
+                if (!s) return t('exercise.rest_next_plain', { set: si + 1 });
+                if (s.weight_kg > 0) return t('exercise.rest_next', { set: si + 1, reps: s.reps, weight: s.weight_kg });
+                return t('exercise.rest_next_bw', { set: si + 1, reps: s.reps });
+              })()}
             </Text>
           </View>
           <Pressable onPress={handleSkipRest} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip ▶</Text>
+            <Text style={styles.skipText}>{t('exercise.skip')}</Text>
           </Pressable>
         </View>
       )}
@@ -335,7 +340,7 @@ export default function ExerciseCard({ exercise }: Props) {
       {/* All sets done badge */}
       {!hasVideo && allDone && exercise.sets.length > 0 && restSecondsLeft === null && (
         <View style={styles.completeBadge}>
-          <Text style={styles.completeText}>✓ Exercise complete</Text>
+          <Text style={styles.completeText}>{t('exercise.complete')}</Text>
         </View>
       )}
 
@@ -343,17 +348,17 @@ export default function ExerciseCard({ exercise }: Props) {
         style={styles.addSetBtn}
         onPress={() => dispatch({ type: 'ADD_SET', localId: exercise.localId })}
       >
-        <Text style={styles.addSetText}>+ Add Set</Text>
+        <Text style={styles.addSetText}>{t('exercise.add_set')}</Text>
       </Pressable>
 
       {/* URL input modal */}
       <Modal visible={urlModalVisible} transparent animationType="fade" onRequestClose={() => setUrlModalVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setUrlModalVisible(false)}>
           <Pressable style={styles.urlModalCard} onPress={() => {}}>
-            <Text style={styles.urlModalTitle}>Paste Video URL</Text>
+            <Text style={styles.urlModalTitle}>{t('exercise.paste_video_url')}</Text>
             <TextInput
               style={styles.urlInput}
-              placeholder="https://..."
+              placeholder={t('exercise.url_placeholder')}
               value={urlInput}
               onChangeText={setUrlInput}
               autoCapitalize="none"
@@ -363,10 +368,10 @@ export default function ExerciseCard({ exercise }: Props) {
             />
             <View style={styles.urlModalButtons}>
               <Pressable onPress={() => setUrlModalVisible(false)} style={styles.urlCancelBtn}>
-                <Text style={styles.urlCancelText}>Cancel</Text>
+                <Text style={styles.urlCancelText}>{t('exercise.cancel')}</Text>
               </Pressable>
               <Pressable onPress={handleUseUrl} style={styles.urlUseBtn}>
-                <Text style={styles.urlUseText}>Use URL</Text>
+                <Text style={styles.urlUseText}>{t('exercise.use_url')}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -382,7 +387,7 @@ export default function ExerciseCard({ exercise }: Props) {
         <View style={styles.playerContainer}>
           <VideoView player={player} style={styles.videoView} allowsFullscreen nativeControls contentFit="contain" />
           <Pressable onPress={() => { player.pause(); setPlayerModalVisible(false); }} style={styles.closeBtn}>
-            <Text style={styles.closeText}>✕  Close</Text>
+            <Text style={styles.closeText}>{t('exercise.close')}</Text>
           </Pressable>
         </View>
       </Modal>

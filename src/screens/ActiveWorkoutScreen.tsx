@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkout } from '../context/WorkoutContext';
 import { useTimer } from '../hooks/useTimer';
@@ -22,6 +23,7 @@ import type { ActiveWorkoutScreenProps } from '../navigation/types';
 // ActiveWorkout is now a root-level modal screen
 
 export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
+  const { t } = useTranslation();
   const { state, dispatch } = useWorkout();
   const { elapsed } = useTimer(state.isActive);
   const { settings } = useReminderSettings();
@@ -36,7 +38,7 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
 
   async function handleFinish() {
     if (state.exercises.length === 0) {
-      Alert.alert('No Exercises', 'Add at least one exercise before finishing.');
+      Alert.alert(t('workout.no_exercises'), t('workout.no_exercises_msg'));
       return;
     }
     if (saving) return;
@@ -68,16 +70,16 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
       navigation.goBack();
     } catch (e) {
       setSaving(false);
-      Alert.alert('Error', 'Failed to save workout. Please try again.');
+      Alert.alert(t('common.error'), t('workout.save_error'));
       console.error(e);
     }
   }
 
   function handleDiscard() {
-    Alert.alert('Discard Workout?', 'This session will not be saved.', [
-      { text: 'Keep Going', style: 'cancel' },
+    Alert.alert(t('workout.discard_title'), t('workout.discard_message'), [
+      { text: t('workout.keep_going'), style: 'cancel' },
       {
-        text: 'Discard',
+        text: t('workout.discard'),
         style: 'destructive',
         onPress: () => {
           dispatch({ type: 'FINISH_WORKOUT' });
@@ -96,7 +98,7 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={handleDiscard}>
-            <Text style={styles.discardText}>Discard</Text>
+            <Text style={styles.discardText}>{t('workout.discard')}</Text>
           </Pressable>
           <Timer elapsed={elapsed} />
           <Pressable
@@ -104,7 +106,7 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
             onPress={handleFinish}
             disabled={saving}
           >
-            <Text style={styles.finishText}>{saving ? 'Saving…' : 'Finish'}</Text>
+            <Text style={styles.finishText}>{saving ? t('workout.saving') : t('workout.finish')}</Text>
           </Pressable>
         </View>
 
@@ -120,12 +122,12 @@ export default function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenP
             style={styles.addExBtn}
             onPress={() => dispatch({ type: 'ADD_EXERCISE', name: '' })}
           >
-            <Text style={styles.addExText}>+ Add Exercise</Text>
+            <Text style={styles.addExText}>{t('workout.add_exercise')}</Text>
           </Pressable>
 
           <TextInput
             style={styles.notesInput}
-            placeholder="Session notes (optional)"
+            placeholder={t('workout.notes_placeholder')}
             multiline
             numberOfLines={3}
             value={state.notes}

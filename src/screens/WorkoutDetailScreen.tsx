@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Modal, Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getWorkoutById, getExercisesForWorkout } from '../db/queries';
@@ -13,6 +14,7 @@ interface ExerciseDetailBlockProps {
 }
 
 function ExerciseDetailBlock({ exercise }: ExerciseDetailBlockProps) {
+  const { t } = useTranslation();
   const [playerVisible, setPlayerVisible] = useState(false);
 
   const directUri =
@@ -37,14 +39,14 @@ function ExerciseDetailBlock({ exercise }: ExerciseDetailBlockProps) {
         <Text style={styles.exerciseName}>{exercise.name}</Text>
         {exercise.video_uri ? (
           <Pressable onPress={handleWatch} style={styles.watchBtn}>
-            <Text style={styles.watchText}>▶ Watch</Text>
+            <Text style={styles.watchText}>{t('workout_detail.watch')}</Text>
           </Pressable>
         ) : null}
       </View>
 
       {exercise.sets.map((set, i) => (
         <Text key={i} style={styles.setLine}>
-          Set {i + 1}: {set.reps} reps × {set.weight_kg} lbs
+          {t('workout_detail.set_line', { num: i + 1, reps: set.reps, weight: set.weight_kg })}
         </Text>
       ))}
 
@@ -71,7 +73,7 @@ function ExerciseDetailBlock({ exercise }: ExerciseDetailBlockProps) {
             }}
             style={styles.closeBtn}
           >
-            <Text style={styles.closeText}>✕  Close</Text>
+            <Text style={styles.closeText}>{t('workout_detail.close')}</Text>
           </Pressable>
         </View>
       </Modal>
@@ -80,6 +82,7 @@ function ExerciseDetailBlock({ exercise }: ExerciseDetailBlockProps) {
 }
 
 export default function WorkoutDetailScreen({ route }: WorkoutDetailScreenProps) {
+  const { t } = useTranslation();
   const { workoutId } = route.params;
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -99,7 +102,7 @@ export default function WorkoutDetailScreen({ route }: WorkoutDetailScreenProps)
   if (!workout) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -117,14 +120,14 @@ export default function WorkoutDetailScreen({ route }: WorkoutDetailScreenProps)
       contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
     >
       <Text style={styles.date}>{date}</Text>
-      <Text style={styles.duration}>Duration: {formatElapsed(workout.duration_seconds)}</Text>
+      <Text style={styles.duration}>{t('workout_detail.duration', { duration: formatElapsed(workout.duration_seconds) })}</Text>
 
       {workout.notes ? <Text style={styles.notes}>{workout.notes}</Text> : null}
 
-      <Text style={styles.sectionTitle}>Exercises</Text>
+      <Text style={styles.sectionTitle}>{t('workout_detail.exercises')}</Text>
 
       {exercises.length === 0 ? (
-        <Text style={styles.noExercises}>No exercises logged.</Text>
+        <Text style={styles.noExercises}>{t('workout_detail.no_exercises')}</Text>
       ) : (
         exercises.map(ex => <ExerciseDetailBlock key={ex.id} exercise={ex} />)
       )}

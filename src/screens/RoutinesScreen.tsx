@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useRoutines } from '../hooks/useRoutines';
 import { useProfile } from '../hooks/useProfile';
 import { deleteRoutine } from '../db/queries';
@@ -47,6 +48,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<FilterKey>('ForYou');
   const { profile } = useProfile();
   // Always fetch all routines; we filter client-side for ForYou
@@ -77,17 +79,17 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
   const handleKebab = useCallback((routine: Routine) => {
     Alert.alert(routine.name, undefined, [
       {
-        text: 'Edit',
+        text: t('routines.edit'),
         onPress: () => navigation.navigate('CreateRoutine', { routineId: routine.id }),
       },
       {
-        text: 'Delete',
+        text: t('routines.delete'),
         style: 'destructive',
         onPress: () => {
-          Alert.alert('Delete Routine?', 'This cannot be undone.', [
-            { text: 'Cancel', style: 'cancel' },
+          Alert.alert(t('routines.delete_title'), t('routines.delete_message'), [
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Delete',
+              text: t('routines.delete'),
               style: 'destructive',
               onPress: async () => {
                 await deleteRoutine(routine.id).catch(console.error);
@@ -96,9 +98,9 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
           ]);
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
-  }, [navigation]);
+  }, [navigation, t]);
 
   const renderItem = useCallback(({ item }: { item: Routine }) => {
     const color = CATEGORY_COLORS[item.category] ?? '#8E8E93';
@@ -110,7 +112,7 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
         <View style={styles.cardMain}>
           <Text style={styles.cardName}>{item.name}</Text>
           <View style={[styles.categoryBadge, { backgroundColor: color + '22' }]}>
-            <Text style={[styles.categoryText, { color }]}>{item.category}</Text>
+            <Text style={[styles.categoryText, { color }]}>{t(`categories.${item.category}`)}</Text>
           </View>
           {item.description ? (
             <Text style={styles.cardDesc} numberOfLines={1}>{item.description}</Text>
@@ -125,7 +127,7 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
         )}
       </Pressable>
     );
-  }, [navigation, handleKebab]);
+  }, [navigation, handleKebab, t]);
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -140,7 +142,11 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
           // Hide ForYou pill if no goal set
           if (cat === 'ForYou' && !profile.fitness_goal) return null;
           const active = cat === selectedCategory;
-          const label = cat === 'ForYou' ? '✦ For You' : cat;
+          const label = cat === 'ForYou'
+            ? t('routines.for_you')
+            : cat === 'All'
+              ? t('routines.all')
+              : t(`categories.${cat}`);
           return (
             <Pressable
               key={cat}
@@ -161,8 +167,8 @@ export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No routines yet.</Text>
-              <Text style={styles.emptyHint}>Tap + to create your first routine!</Text>
+              <Text style={styles.emptyText}>{t('routines.empty')}</Text>
+              <Text style={styles.emptyHint}>{t('routines.empty_hint')}</Text>
             </View>
           ) : null
         }

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useWorkouts } from '../hooks/useWorkouts';
 import { useReminderSettings } from '../hooks/useReminderSettings';
@@ -9,14 +10,8 @@ import { scheduleInactivityReminder } from '../services/notifications';
 import type { HomeScreenProps } from '../navigation/types';
 import type { RootStackParamList } from '../navigation/types';
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
 export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const { t } = useTranslation();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { workouts } = useWorkouts();
   const { settings } = useReminderSettings();
@@ -40,22 +35,29 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     ? Math.floor((Date.now() / 1000 - lastWorkout.created_at) / 86400)
     : null;
 
+  const greetingText = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return t('home.good_morning');
+    if (h < 18) return t('home.good_afternoon');
+    return t('home.good_evening');
+  })();
+
   const motivationLine =
-    daysSince === null ? "Let's get started — log your first session!" :
-    daysSince === 0   ? 'You trained today. Keep the streak alive!' :
-    daysSince === 1   ? 'You trained yesterday. Stay consistent!' :
-                        `${daysSince} days since your last session. Time to go!`;
+    daysSince === null ? t('home.motivation_first') :
+    daysSince === 0   ? t('home.motivation_today') :
+    daysSince === 1   ? t('home.motivation_yesterday') :
+                        t('home.motivation_days', { days: daysSince });
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {/* Top section */}
       <View style={styles.body}>
-        <Text style={styles.greeting}>{greeting()}</Text>
+        <Text style={styles.greeting}>{greetingText}</Text>
         <Text style={styles.motivation}>{motivationLine}</Text>
 
         {lastWorkoutLabel && (
           <View style={styles.lastCard}>
-            <Text style={styles.lastLabel}>Last workout</Text>
+            <Text style={styles.lastLabel}>{t('home.last_workout')}</Text>
             <Text style={styles.lastDate}>{lastWorkoutLabel}</Text>
           </View>
         )}
@@ -67,14 +69,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           style={styles.settingsBtn}
           onPress={() => navigation.navigate('ReminderSettings')}
         >
-          <Text style={styles.settingsText}>🔔  Reminder Settings</Text>
+          <Text style={styles.settingsText}>{t('home.reminder_settings')}</Text>
         </Pressable>
 
         <Pressable
           style={styles.startBtn}
           onPress={() => rootNav.navigate('ActiveWorkout')}
         >
-          <Text style={styles.startText}>Start Workout</Text>
+          <Text style={styles.startText}>{t('home.start_workout')}</Text>
         </Pressable>
       </View>
     </View>

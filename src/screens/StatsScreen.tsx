@@ -8,18 +8,19 @@ import {
   Dimensions,
   Pressable,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStats } from '../hooks/useStats';
 
 type RangeKey = '7D' | '30D' | '3M' | '6M' | '1Y' | 'All';
 
-const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
-  { key: '7D',  label: '7D',   days: 7 },
-  { key: '30D', label: '30D',  days: 30 },
-  { key: '3M',  label: '3M',   days: 90 },
-  { key: '6M',  label: '6M',   days: 180 },
-  { key: '1Y',  label: '1Y',   days: 365 },
-  { key: 'All', label: 'All',  days: null },
+const RANGE_KEYS: { key: RangeKey; tKey: string; days: number | null }[] = [
+  { key: '7D',  tKey: 'stats.7d',  days: 7 },
+  { key: '30D', tKey: 'stats.30d', days: 30 },
+  { key: '3M',  tKey: 'stats.3m',  days: 90 },
+  { key: '6M',  tKey: 'stats.6m',  days: 180 },
+  { key: '1Y',  tKey: 'stats.1y',  days: 365 },
+  { key: 'All', tKey: 'stats.all', days: null },
 ];
 
 function sinceUnixForDays(days: number | null): number | undefined {
@@ -177,8 +178,9 @@ const lineStyles = StyleSheet.create({
 // ---------- Main screen ----------
 
 export default function StatsScreen() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<RangeKey>('All');
-  const selectedDays = RANGES.find(r => r.key === range)?.days ?? null;
+  const selectedDays = RANGE_KEYS.find(r => r.key === range)?.days ?? null;
   const { stats, weekly, monthly, topExercises, prs, loading } = useStats(sinceUnixForDays(selectedDays));
   const insets = useSafeAreaInsets();
 
@@ -194,8 +196,8 @@ export default function StatsScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyIcon}>📊</Text>
-        <Text style={styles.emptyTitle}>No workouts yet.</Text>
-        <Text style={styles.emptyHint}>Start training to see your stats!</Text>
+        <Text style={styles.emptyTitle}>{t('stats.empty')}</Text>
+        <Text style={styles.emptyHint}>{t('stats.empty_hint')}</Text>
       </View>
     );
   }
@@ -207,14 +209,14 @@ export default function StatsScreen() {
     >
       {/* Date range pills */}
       <View style={styles.rangeRow}>
-        {RANGES.map(r => (
+        {RANGE_KEYS.map(r => (
           <Pressable
             key={r.key}
             style={[styles.rangePill, range === r.key && styles.rangePillActive]}
             onPress={() => setRange(r.key)}
           >
             <Text style={[styles.rangePillText, range === r.key && styles.rangePillTextActive]}>
-              {r.label}
+              {t(r.tKey)}
             </Text>
           </Pressable>
         ))}
@@ -223,17 +225,17 @@ export default function StatsScreen() {
       {/* Summary tiles */}
       {stats && (
         <View style={styles.tilesGrid}>
-          <StatTile label="Total Workouts" value={String(stats.totalWorkouts)} />
-          <StatTile label="Current Streak" value={`${stats.currentStreak}d`} />
-          <StatTile label="Longest Streak" value={`${stats.longestStreak}d`} />
-          <StatTile label="Total Volume" value={`${(stats.totalVolume / 1000).toFixed(1)}k lbs`} />
+          <StatTile label={t('stats.total_workouts')} value={String(stats.totalWorkouts)} />
+          <StatTile label={t('stats.current_streak')} value={t('stats.streak_days', { days: stats.currentStreak })} />
+          <StatTile label={t('stats.longest_streak')} value={t('stats.streak_days', { days: stats.longestStreak })} />
+          <StatTile label={t('stats.total_volume')} value={t('stats.volume_k', { value: (stats.totalVolume / 1000).toFixed(1) })} />
         </View>
       )}
 
       {/* Weekly bar chart */}
       {weekly.length > 0 && (
         <View style={styles.chartCard}>
-          <Text style={styles.sectionTitle}>Workouts per Week</Text>
+          <Text style={styles.sectionTitle}>{t('stats.workouts_per_week')}</Text>
           <PureBarChart
             values={weekly.map(w => w.count)}
             labels={weekly.map(w => w.weekLabel)}
@@ -244,7 +246,7 @@ export default function StatsScreen() {
       {/* Monthly line chart */}
       {monthly.length > 0 && monthly.some(m => m.volume > 0) && (
         <View style={styles.chartCard}>
-          <Text style={styles.sectionTitle}>Volume per Month (lbs)</Text>
+          <Text style={styles.sectionTitle}>{t('stats.volume_per_month')}</Text>
           <PureLineChart
             values={monthly.map(m => m.volume)}
             labels={monthly.map(m => m.monthLabel)}
@@ -255,12 +257,12 @@ export default function StatsScreen() {
       {/* Top exercises */}
       {topExercises.length > 0 && (
         <View style={styles.listCard}>
-          <Text style={styles.sectionTitle}>Most Performed Exercises</Text>
+          <Text style={styles.sectionTitle}>{t('stats.top_exercises')}</Text>
           {topExercises.map((ex, i) => (
             <View key={ex.name} style={styles.listRow}>
               <Text style={styles.rank}>#{i + 1}</Text>
               <Text style={styles.listName}>{ex.name}</Text>
-              <Text style={styles.listValue}>{ex.count}×</Text>
+              <Text style={styles.listValue}>{t('stats.times', { count: ex.count })}</Text>
             </View>
           ))}
         </View>
@@ -269,11 +271,11 @@ export default function StatsScreen() {
       {/* Personal records */}
       {prs.length > 0 && (
         <View style={styles.listCard}>
-          <Text style={styles.sectionTitle}>Personal Records</Text>
+          <Text style={styles.sectionTitle}>{t('stats.personal_records')}</Text>
           {prs.map(pr => (
             <View key={pr.name} style={styles.listRow}>
               <Text style={styles.listName}>{pr.name}</Text>
-              <Text style={styles.listValue}>{pr.max_weight_kg} lbs</Text>
+              <Text style={styles.listValue}>{t('stats.pr_weight', { weight: pr.max_weight_kg })}</Text>
             </View>
           ))}
         </View>

@@ -1,11 +1,13 @@
 import React from 'react';
 import { FlatList, View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkouts } from '../hooks/useWorkouts';
 import WorkoutCard from '../components/WorkoutCard';
 import type { HistoryScreenProps } from '../navigation/types';
 
 export default function HistoryScreen({ navigation }: HistoryScreenProps) {
+  const { t } = useTranslation();
   const { workouts, loading } = useWorkouts();
   const insets = useSafeAreaInsets();
 
@@ -22,7 +24,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
       ListEmptyComponent={
         !loading ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No workouts logged yet.</Text>
+            <Text style={styles.emptyText}>{t('history.empty')}</Text>
           </View>
         ) : null
       }

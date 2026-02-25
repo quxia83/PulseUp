@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -48,6 +49,7 @@ interface VideoFieldProps {
 }
 
 function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
+  const { t } = useTranslation();
   const [urlModalVisible, setUrlModalVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [playerVisible, setPlayerVisible] = useState(false);
@@ -62,28 +64,28 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
     } catch (err: any) {
       const msg = err?.message ?? '';
       if (msg.includes('PHPhotos')) {
-        Alert.alert('Video Unavailable', 'Could not load this video. Try a different video or make sure it is downloaded from iCloud.');
+        Alert.alert(t('create_routine.video_unavailable'), t('create_routine.video_unavailable_msg'));
       } else {
-        Alert.alert('Error', msg || 'Could not load video.');
+        Alert.alert(t('common.error'), msg || t('create_routine.video_error'));
       }
     }
   }
 
   function handlePick() {
-    Alert.alert(label, 'Add a video', [
+    Alert.alert(label, '', [
       {
-        text: 'Camera Roll',
+        text: t('create_routine.camera_roll'),
         onPress: () => { handlePickFromGallery(); },
       },
       {
-        text: 'Paste URL',
+        text: t('create_routine.paste_url'),
         onPress: () => {
           setUrlInput(value);
           setUrlModalVisible(true);
         },
       },
-      value ? { text: 'Remove', style: 'destructive', onPress: () => onChange('') } : null,
-      { text: 'Cancel', style: 'cancel' },
+      value ? { text: t('create_routine.remove'), style: 'destructive', onPress: () => onChange('') } : null,
+      { text: t('create_routine.cancel'), style: 'cancel' },
     ].filter(Boolean) as any);
   }
 
@@ -98,7 +100,7 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
 
   const short = value
     ? value.startsWith('file://') || value.startsWith('ph://')
-      ? 'Local video attached'
+      ? t('create_routine.local_video')
       : value.length > 38 ? value.slice(0, 38) + '…' : value
     : null;
 
@@ -121,7 +123,7 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
         <Pressable style={styles.videoField} onPress={handlePick}>
           <View style={styles.videoFieldEmpty}>
             <Ionicons name="videocam-outline" size={18} color="#8E8E93" />
-            <Text style={styles.videoFieldPlaceholder}>Attach video…</Text>
+            <Text style={styles.videoFieldPlaceholder}>{t('create_routine.attach_video')}</Text>
           </View>
         </Pressable>
       )}
@@ -135,7 +137,7 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
         <View style={styles.playerContainer}>
           <VideoView player={player} style={styles.playerVideo} allowsFullscreen nativeControls contentFit="contain" />
           <Pressable onPress={() => { player.pause(); setPlayerVisible(false); }} style={styles.playerCloseBtn}>
-            <Text style={styles.playerCloseText}>✕  Close</Text>
+            <Text style={styles.playerCloseText}>{t('create_routine.close')}</Text>
           </Pressable>
         </View>
       </Modal>
@@ -148,10 +150,10 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setUrlModalVisible(false)}>
           <Pressable style={styles.urlModalCard} onPress={() => {}}>
-            <Text style={styles.urlModalTitle}>Paste Video URL</Text>
+            <Text style={styles.urlModalTitle}>{t('create_routine.paste_video_url')}</Text>
             <TextInput
               style={styles.urlInput}
-              placeholder="https://..."
+              placeholder={t('create_routine.url_placeholder')}
               value={urlInput}
               onChangeText={setUrlInput}
               autoCapitalize="none"
@@ -161,17 +163,17 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
             />
             <View style={styles.urlModalButtons}>
               <Pressable onPress={() => setUrlModalVisible(false)} style={styles.urlCancelBtn}>
-                <Text style={styles.urlCancelText}>Cancel</Text>
+                <Text style={styles.urlCancelText}>{t('create_routine.cancel')}</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
-                  const t = urlInput.trim();
-                  if (t) onChange(t);
+                  const trimmed = urlInput.trim();
+                  if (trimmed) onChange(trimmed);
                   setUrlModalVisible(false);
                 }}
                 style={styles.urlUseBtn}
               >
-                <Text style={styles.urlUseText}>Use URL</Text>
+                <Text style={styles.urlUseText}>{t('create_routine.use_url')}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -184,6 +186,7 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
 // ---- main screen ----
 
 export default function CreateRoutineScreen({ route, navigation }: CreateRoutineScreenProps) {
+  const { t } = useTranslation();
   const routineId = route?.params?.routineId;
   const isEditing = routineId != null;
 
@@ -238,12 +241,12 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
 
   async function handleSave() {
     if (!name.trim()) {
-      Alert.alert('Validation', 'Please enter a routine name.');
+      Alert.alert(t('create_routine.validation'), t('create_routine.validation_name'));
       return;
     }
     const validExercises = exercises.filter(ex => ex.name.trim());
     if (validExercises.length === 0) {
-      Alert.alert('Validation', 'Add at least one exercise.');
+      Alert.alert(t('create_routine.validation'), t('create_routine.validation_exercises'));
       return;
     }
 
@@ -274,7 +277,7 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
       navigation.goBack();
     } catch (e) {
       setSaving(false);
-      Alert.alert('Error', 'Failed to save routine.');
+      Alert.alert(t('common.error'), t('create_routine.save_error'));
       console.error(e);
     }
   }
@@ -297,15 +300,15 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.label}>Name *</Text>
+        <Text style={styles.label}>{t('create_routine.name_label')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. Push Day"
+          placeholder={t('create_routine.name_placeholder')}
           value={name}
           onChangeText={setName}
         />
 
-        <Text style={styles.label}>Category *</Text>
+        <Text style={styles.label}>{t('create_routine.category_label')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catRow}>
           {CATEGORIES.map(cat => (
             <Pressable
@@ -314,26 +317,26 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
               onPress={() => setCategory(cat)}
             >
               <Text style={[styles.catPillText, category === cat && styles.catPillTextActive]}>
-                {cat}
+                {t(`categories.${cat}`)}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>{t('create_routine.description_label')}</Text>
         <TextInput
           style={[styles.input, styles.multilineInput]}
-          placeholder="Optional description"
+          placeholder={t('create_routine.description_placeholder')}
           value={description}
           onChangeText={setDescription}
           multiline
           numberOfLines={3}
         />
 
-        <Text style={styles.label}>Reference Video</Text>
-        <VideoPickerField label="Reference Video" value={videoUrl} onChange={setVideoUrl} />
+        <Text style={styles.label}>{t('create_routine.reference_video')}</Text>
+        <VideoPickerField label={t('create_routine.reference_video')} value={videoUrl} onChange={setVideoUrl} />
 
-        <Text style={styles.label}>Music / Playlist URL</Text>
+        <Text style={styles.label}>{t('create_routine.music_url')}</Text>
         <TextInput
           style={styles.input}
           placeholder="https://..."
@@ -344,10 +347,10 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
         />
 
         <View style={styles.exercisesHeader}>
-          <Text style={styles.sectionTitle}>Exercises</Text>
+          <Text style={styles.sectionTitle}>{t('create_routine.exercises')}</Text>
           <Pressable onPress={addExercise} style={styles.addExBtn}>
             <Ionicons name="add-circle-outline" size={20} color="#FF6B35" />
-            <Text style={styles.addExText}>Add</Text>
+            <Text style={styles.addExText}>{t('create_routine.add')}</Text>
           </Pressable>
         </View>
 
@@ -361,13 +364,13 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
             </View>
             <TextInput
               style={styles.input}
-              placeholder="Exercise name"
+              placeholder={t('create_routine.exercise_name')}
               value={ex.name}
               onChangeText={v => updateExercise(i, 'name', v)}
             />
             <View style={styles.exRow}>
               <View style={styles.exField}>
-                <Text style={styles.exFieldLabel}>Sets</Text>
+                <Text style={styles.exFieldLabel}>{t('create_routine.sets')}</Text>
                 <TextInput
                   style={styles.smallInput}
                   value={ex.suggested_sets}
@@ -376,7 +379,7 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
                 />
               </View>
               <View style={styles.exField}>
-                <Text style={styles.exFieldLabel}>Reps</Text>
+                <Text style={styles.exFieldLabel}>{t('create_routine.reps')}</Text>
                 <TextInput
                   style={styles.smallInput}
                   value={ex.suggested_reps}
@@ -385,7 +388,7 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
                 />
               </View>
               <View style={styles.exField}>
-                <Text style={styles.exFieldLabel}>Weight (lbs)</Text>
+                <Text style={styles.exFieldLabel}>{t('create_routine.weight_lbs')}</Text>
                 <TextInput
                   style={styles.smallInput}
                   value={ex.suggested_weight_kg}
@@ -394,9 +397,9 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
                 />
               </View>
             </View>
-            <Text style={[styles.label, { marginTop: 8 }]}>Exercise Video</Text>
+            <Text style={[styles.label, { marginTop: 8 }]}>{t('create_routine.exercise_video')}</Text>
             <VideoPickerField
-              label="Exercise Video"
+              label={t('create_routine.exercise_video')}
               value={ex.video_url}
               onChange={v => updateExercise(i, 'video_url', v)}
             />
@@ -409,7 +412,7 @@ export default function CreateRoutineScreen({ route, navigation }: CreateRoutine
           disabled={saving}
         >
           <Text style={styles.saveText}>
-            {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Create Routine'}
+            {saving ? t('create_routine.saving') : isEditing ? t('create_routine.save_changes') : t('create_routine.create_routine')}
           </Text>
         </Pressable>
       </ScrollView>
