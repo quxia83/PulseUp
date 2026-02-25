@@ -11,11 +11,14 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { insertRoutine, updateRoutine, getRoutineById, getRoutineExercises } from '../db/queries';
 import { pickVideoFromGallery } from '../services/videoService';
+import { isYouTubeUrl, isDirectVideoUrl } from '../utils/videoUtils';
 import type { RoutineCategory, NewRoutineExerciseInput } from '../types';
 import type { CreateRoutineScreenProps } from '../navigation/types';
 
@@ -47,15 +50,30 @@ interface VideoFieldProps {
 function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
   const [urlModalVisible, setUrlModalVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [playerVisible, setPlayerVisible] = useState(false);
+
+  const directUri = value && isDirectVideoUrl(value) ? value : null;
+  const player = useVideoPlayer(directUri, p => { p.loop = false; });
+
+  async function handlePickFromGallery() {
+    try {
+      const result = await pickVideoFromGallery();
+      if (result) onChange(result.uri);
+    } catch (err: any) {
+      const msg = err?.message ?? '';
+      if (msg.includes('PHPhotos')) {
+        Alert.alert('Video Unavailable', 'Could not load this video. Try a different video or make sure it is downloaded from iCloud.');
+      } else {
+        Alert.alert('Error', msg || 'Could not load video.');
+      }
+    }
+  }
 
   function handlePick() {
     Alert.alert(label, 'Add a video', [
       {
         text: 'Camera Roll',
-        onPress: async () => {
-          const result = await pickVideoFromGallery();
-          if (result) onChange(result.uri);
-        },
+        onPress: () => { handlePickFromGallery(); },
       },
       {
         text: 'Paste URL',
@@ -69,6 +87,15 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
     ].filter(Boolean) as any);
   }
 
+  function handlePlay() {
+    if (!value) return;
+    if (isYouTubeUrl(value)) {
+      Linking.openURL(value);
+    } else {
+      setPlayerVisible(true);
+    }
+  }
+
   const short = value
     ? value.startsWith('file://') || value.startsWith('ph://')
       ? 'Local video attached'
@@ -77,22 +104,41 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
 
   return (
     <>
-      <Pressable style={styles.videoField} onPress={handlePick}>
-        {short ? (
-          <View style={styles.videoFieldFilled}>
-            <Ionicons name="play-circle-outline" size={18} color="#FF6B35" />
+      {value ? (
+        <View style={styles.videoFieldFilled}>
+          <Pressable onPress={handlePlay} style={styles.videoPlayBtn}>
+            <Ionicons name="play-circle" size={22} color="#FF6B35" />
             <Text style={styles.videoFieldUrl} numberOfLines={1}>{short}</Text>
-            <Pressable onPress={() => onChange('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={16} color="#8E8E93" />
-            </Pressable>
-          </View>
-        ) : (
+          </Pressable>
+          <Pressable onPress={handlePick} hitSlop={8}>
+            <Ionicons name="swap-horizontal" size={18} color="#8E8E93" />
+          </Pressable>
+          <Pressable onPress={() => onChange('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={18} color="#FF3B30" />
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable style={styles.videoField} onPress={handlePick}>
           <View style={styles.videoFieldEmpty}>
             <Ionicons name="videocam-outline" size={18} color="#8E8E93" />
             <Text style={styles.videoFieldPlaceholder}>Attach video…</Text>
           </View>
-        )}
-      </Pressable>
+        </Pressable>
+      )}
+
+      {/* Fullscreen player modal */}
+      <Modal
+        visible={playerVisible}
+        animationType="slide"
+        onRequestClose={() => { player.pause(); setPlayerVisible(false); }}
+      >
+        <View style={styles.playerContainer}>
+          <VideoView player={player} style={styles.playerVideo} allowsFullscreen nativeControls contentFit="contain" />
+          <Pressable onPress={() => { player.pause(); setPlayerVisible(false); }} style={styles.playerCloseBtn}>
+            <Text style={styles.playerCloseText}>✕  Close</Text>
+          </Pressable>
+        </View>
+      </Modal>
 
       <Modal
         visible={urlModalVisible}
@@ -400,9 +446,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   videoFieldEmpty: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  videoFieldFilled: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  videoFieldFilled: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#fff', borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: '#D1D1D6',
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  videoPlayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   videoFieldPlaceholder: { fontSize: 15, color: '#8E8E93', flex: 1 },
   videoFieldUrl: { fontSize: 14, color: '#FF6B35', flex: 1 },
+  // Video player modal
+  playerContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
+  playerVideo: { flex: 1 },
+  playerCloseBtn: { padding: 20, alignItems: 'center' },
+  playerCloseText: { color: '#fff', fontSize: 17 },
   // URL modal
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
   urlModalCard: { backgroundColor: '#fff', borderRadius: 14, padding: 20, width: '85%' },

@@ -1,6 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import * as FileSystem from 'expo-file-system/legacy';
 
 export interface PickedVideo {
   uri: string;
@@ -8,26 +7,20 @@ export interface PickedVideo {
 }
 
 export async function pickVideoFromGallery(): Promise<PickedVideo | null> {
-  // expo-image-picker v14+ uses PHPicker on iOS 14+ which does not require
-  // explicit photo library permission — the system picker handles access itself.
+  await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  // allowsEditing: true forces iOS to use the video trimmer export path
+  // which avoids PHPhotosErrorDomain error 3164 that occurs with
+  // PHPicker's NSItemProvider export on certain videos.
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['videos'],
-    allowsEditing: false,
-    quality: 1,
+    allowsEditing: true,
     videoMaxDuration: 600,
   });
 
   if (result.canceled || !result.assets?.[0]) return null;
 
-  let uri = result.assets[0].uri;
-
-  // On iOS, expo-image-picker may return a ph:// PHAsset URI.
-  // expo-video requires a file:// URI to stream, so copy to cache if needed.
-  if (uri.startsWith('ph://')) {
-    const dest = `${FileSystem.cacheDirectory}pulseup_video_${Date.now()}.mov`;
-    await FileSystem.copyAsync({ from: uri, to: dest });
-    uri = dest;
-  }
+  const uri = result.assets[0].uri;
 
   let thumbnailUri: string | null = null;
   try {

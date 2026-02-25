@@ -47,21 +47,23 @@ function NumInput({
 }
 
 const numStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  label: { fontSize: 15, color: '#1C1C1E', fontWeight: '500' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+  },
+  label: { fontSize: 16, color: '#1C1C1E' },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   input: {
-    width: 80,
+    minWidth: 36,
     textAlign: 'right',
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#FF6B35',
-    borderBottomWidth: 1.5,
-    borderColor: '#E5E5EA',
+    fontSize: 16,
+    color: '#3C3C43',
     paddingVertical: 4,
     fontVariant: ['tabular-nums'],
   },
-  unit: { fontSize: 14, color: '#8E8E93', fontWeight: '500' },
+  unit: { fontSize: 15, color: '#8E8E93' },
 });
 
 export default function ProfileScreen() {
@@ -71,7 +73,8 @@ export default function ProfileScreen() {
   // local edit state (strings for text inputs)
   const [weight, setWeight]       = useState('');
   const [target, setTarget]       = useState('');
-  const [height, setHeight]       = useState('');
+  const [heightFt, setHeightFt]   = useState('');
+  const [heightIn, setHeightIn]   = useState('');
   const [age, setAge]             = useState('');
   const [goal, setGoal]           = useState<FitnessGoal | null>(null);
   const [level, setLevel]         = useState<ExperienceLevel | null>(null);
@@ -82,7 +85,14 @@ export default function ProfileScreen() {
     if (!loading) {
       setWeight(profile.weight_kg != null ? String(profile.weight_kg) : '');
       setTarget(profile.target_weight_kg != null ? String(profile.target_weight_kg) : '');
-      setHeight(profile.height_cm != null ? String(profile.height_cm) : '');
+      if (profile.height_cm != null) {
+        const totalIn = profile.height_cm;
+        setHeightFt(String(Math.floor(totalIn / 12)));
+        setHeightIn(String(Math.round(totalIn % 12)));
+      } else {
+        setHeightFt('');
+        setHeightIn('');
+      }
       setAge(profile.age != null ? String(profile.age) : '');
       setGoal(profile.fitness_goal);
       setLevel(profile.experience_level);
@@ -90,10 +100,13 @@ export default function ProfileScreen() {
   }, [loading]);
 
   async function handleSave() {
+    const ft = parseInt(heightFt, 10) || 0;
+    const inches = parseInt(heightIn, 10) || 0;
+    const totalInches = ft * 12 + inches;
     const updated: UserProfile = {
       weight_kg:        weight ? parseFloat(weight) : null,
       target_weight_kg: target ? parseFloat(target) : null,
-      height_cm:        height ? parseFloat(height) : null,
+      height_cm:        totalInches > 0 ? totalInches : null,
       age:              age    ? parseInt(age, 10)  : null,
       fitness_goal:     goal,
       experience_level: level,
@@ -106,9 +119,11 @@ export default function ProfileScreen() {
   // BMI helper
   const bmi = (() => {
     const w = parseFloat(weight);
-    const h = parseFloat(height);
+    const ft = parseInt(heightFt, 10) || 0;
+    const inches = parseInt(heightIn, 10) || 0;
+    const h = ft * 12 + inches;
     if (!w || !h) return null;
-    return (w / ((h / 100) ** 2)).toFixed(1);
+    return ((w / (h * h)) * 703).toFixed(1);
   })();
 
   return (
@@ -128,7 +143,29 @@ export default function ProfileScreen() {
           <View style={styles.divider} />
           <NumInput label="Target Weight"  value={target} unit="lbs" onChangeText={setTarget} />
           <View style={styles.divider} />
-          <NumInput label="Height"         value={height} unit="in"  onChangeText={setHeight} />
+          <View style={numStyles.row}>
+            <Text style={numStyles.label}>Height</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                style={[numStyles.input, { width: 24 }]}
+                value={heightFt}
+                onChangeText={setHeightFt}
+                keyboardType="number-pad"
+                placeholder="—"
+                placeholderTextColor="#C7C7CC"
+              />
+              <Text style={numStyles.unit}>ft</Text>
+              <TextInput
+                style={[numStyles.input, { width: 24, marginLeft: 6 }]}
+                value={heightIn}
+                onChangeText={setHeightIn}
+                keyboardType="number-pad"
+                placeholder="—"
+                placeholderTextColor="#C7C7CC"
+              />
+              <Text style={numStyles.unit}>in</Text>
+            </View>
+          </View>
           <View style={styles.divider} />
           <NumInput label="Age"            value={age}    unit="yr" onChangeText={setAge} />
           {bmi && (

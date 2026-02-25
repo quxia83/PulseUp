@@ -82,6 +82,7 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
         headerRight: () => (
           <Pressable
             onPress={() => navigation.navigate('CreateRoutine', { routineId: routine.id })}
+            style={{ paddingHorizontal: 8, paddingVertical: 4, justifyContent: 'center', alignItems: 'center' }}
           >
             <Text style={{ color: '#FF6B35', fontSize: 16 }}>Edit</Text>
           </Pressable>
@@ -204,6 +205,14 @@ export default function RoutineDetailScreen({ route, navigation }: RoutineDetail
                   )}
                 </View>
               </View>
+              {ex.video_url ? (
+                <Pressable
+                  onPress={() => Linking.openURL(ex.video_url!)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="play-circle-outline" size={24} color="#FF6B35" />
+                </Pressable>
+              ) : null}
             </View>
           );
         })}
