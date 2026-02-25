@@ -22,6 +22,7 @@ import type { CreateRoutineScreenProps } from '../navigation/types';
 const CATEGORIES: RoutineCategory[] = [
   'Strength', 'Cardio', 'HIIT', 'Mobility',
   'Upper Body', 'Lower Body', 'Full Body', 'Core',
+  'Meditation', 'Stretch', 'Yoga', 'Taiji',
 ];
 
 interface ExerciseRow {
@@ -52,12 +53,8 @@ function VideoPickerField({ label, value, onChange }: VideoFieldProps) {
       {
         text: 'Camera Roll',
         onPress: async () => {
-          try {
-            const result = await pickVideoFromGallery();
-            if (result) onChange(result.uri);
-          } catch {
-            Alert.alert('Permission Denied', 'Media library access is required.');
-          }
+          const result = await pickVideoFromGallery();
+          if (result) onChange(result.uri);
         },
       },
       {

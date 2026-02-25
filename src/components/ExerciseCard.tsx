@@ -74,24 +74,11 @@ export default function ExerciseCard({ exercise }: Props) {
   const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [restForSet, setRestForSet] = useState<number | null>(null); // index of upcoming set
+  const restTotalRef = useRef<number>(0); // total rest duration for milestone calc
 
   const hasVideo = !!exercise.videoUri;
 
-  // ── Auto-announce Set 1 when exercise card first appears (no video only) ──
-  const announcedFirstSet = useRef(false);
-  useEffect(() => {
-    if (hasVideo || announcedFirstSet.current) return;
-    if (!exercise.name || exercise.sets.length === 0) return;
-    announcedFirstSet.current = true;
-    const s = exercise.sets[0];
-    const text = `Set 1. ${exercise.name}. ${setLabel(s.reps, s.weight_kg)}.`;
-    // Small delay so it doesn't clash with any previous speech
-    const id = setTimeout(() => safeSpeak(text), 600);
-    return () => clearTimeout(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Countdown tick
+  // Countdown tick with milestone voice reminders
   useEffect(() => {
     if (restSecondsLeft === null) return;
 
@@ -110,8 +97,16 @@ export default function ExerciseCard({ exercise }: Props) {
       return;
     }
 
-    // Verbal countdown at 3, 2, 1
-    if (restSecondsLeft <= 3) {
+    const total = restTotalRef.current;
+    const halfway = Math.floor(total / 2);
+
+    if (restSecondsLeft === halfway && total >= 60) {
+      safeSpeak(`Halfway. ${restSecondsLeft} seconds remaining.`);
+    } else if (restSecondsLeft === 30 && total > 30) {
+      safeSpeak('30 seconds remaining.');
+    } else if (restSecondsLeft === 10) {
+      safeSpeak('10 seconds.');
+    } else if (restSecondsLeft <= 3) {
       safeSpeak(String(restSecondsLeft));
     }
 
@@ -145,6 +140,7 @@ export default function ExerciseCard({ exercise }: Props) {
       // Start rest — short buzz + spoken start cue
       Vibration.vibrate(80);
       safeSpeak(`Rest. ${restDuration} seconds.`);
+      restTotalRef.current = restDuration;
       setRestForSet(nextIndex);
       setRestSecondsLeft(restDuration);
     } else {
@@ -209,12 +205,8 @@ export default function ExerciseCard({ exercise }: Props) {
       {
         text: 'Camera Roll',
         onPress: async () => {
-          try {
-            const result = await pickVideoFromGallery();
-            if (result) dispatch({ type: 'SET_EXERCISE_VIDEO', localId: exercise.localId, uri: result.uri });
-          } catch {
-            Alert.alert('Permission Denied', 'Media library access is required.');
-          }
+          const result = await pickVideoFromGallery();
+          if (result) dispatch({ type: 'SET_EXERCISE_VIDEO', localId: exercise.localId, uri: result.uri });
         },
       },
       { text: 'Paste URL', onPress: () => { setUrlInput(''); setUrlModalVisible(true); } },

@@ -83,7 +83,8 @@ export interface ReminderSettings {
 
 export type RoutineCategory =
   | 'Strength' | 'Cardio' | 'HIIT' | 'Mobility'
-  | 'Upper Body' | 'Lower Body' | 'Full Body' | 'Core';
+  | 'Upper Body' | 'Lower Body' | 'Full Body' | 'Core'
+  | 'Meditation' | 'Stretch' | 'Yoga' | 'Taiji';
 
 export interface RoutineExercise {
   id: number;

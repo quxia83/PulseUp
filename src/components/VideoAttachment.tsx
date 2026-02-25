@@ -25,12 +25,8 @@ export default function VideoAttachment({
   });
 
   async function handlePick() {
-    try {
-      const result = await pickVideoFromGallery();
-      if (result) onAttach(result.uri, result.thumbnailUri);
-    } catch (e) {
-      console.warn('Video pick failed:', e);
-    }
+    const result = await pickVideoFromGallery();
+    if (result) onAttach(result.uri, result.thumbnailUri);
   }
 
   if (!videoUri) {

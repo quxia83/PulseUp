@@ -77,12 +77,12 @@ async function createTables(db: SQLite.SQLiteDatabase): Promise<void> {
     await db.execAsync(`ALTER TABLE workouts ADD COLUMN source_routine TEXT`);
   } catch { /* already exists */ }
 
-  // Migration: switch built-in routine weights from kg to lbs (user_version 0→1)
+  // Migration: bump to re-seed built-in routines when new categories are added
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  if ((versionRow?.user_version ?? 0) < 1) {
+  if ((versionRow?.user_version ?? 0) < 2) {
     await db.runAsync(`DELETE FROM routine_exercises WHERE routine_id IN (SELECT id FROM routines WHERE is_builtin=1)`);
     await db.runAsync(`DELETE FROM routines WHERE is_builtin=1`);
-    await db.execAsync('PRAGMA user_version = 1');
+    await db.execAsync('PRAGMA user_version = 2');
   }
 
   // Seed built-in routines idempotently
@@ -219,6 +219,65 @@ async function seedBuiltinRoutines(db: SQLite.SQLiteDatabase): Promise<void> {
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Deadlift', 0, 3, 5, 225);
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Push-Up', 1, 3, 15, 0);
       await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, fullBody.id, 'Dumbbell Row', 2, 3, 10, 45);
+    }
+
+    // 10. Guided Meditation — Meditation
+    await db.runAsync(
+      `INSERT INTO routines (name, category, description, is_builtin) VALUES (?, ?, ?, 1)`,
+      'Guided Meditation', 'Meditation', 'Breathwork and mindfulness for recovery'
+    );
+    const meditation = await db.getFirstAsync<{ id: number }>(
+      `SELECT id FROM routines WHERE name='Guided Meditation' AND is_builtin=1`
+    );
+    if (meditation) {
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, meditation.id, 'Box Breathing', 0, 4, 10, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, meditation.id, 'Body Scan', 1, 1, 5, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, meditation.id, 'Gratitude Visualization', 2, 1, 5, 0);
+    }
+
+    // 11. Full Body Stretch — Stretch
+    await db.runAsync(
+      `INSERT INTO routines (name, category, description, is_builtin) VALUES (?, ?, ?, 1)`,
+      'Full Body Stretch', 'Stretch', 'Head-to-toe flexibility and cool-down'
+    );
+    const stretch = await db.getFirstAsync<{ id: number }>(
+      `SELECT id FROM routines WHERE name='Full Body Stretch' AND is_builtin=1`
+    );
+    if (stretch) {
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, stretch.id, 'Hamstring Stretch', 0, 2, 30, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, stretch.id, 'Quad Stretch', 1, 2, 30, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, stretch.id, 'Shoulder & Chest Opener', 2, 2, 30, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, stretch.id, 'Pigeon Pose', 3, 2, 30, 0);
+    }
+
+    // 12. Sun Salutation Flow — Yoga
+    await db.runAsync(
+      `INSERT INTO routines (name, category, description, is_builtin) VALUES (?, ?, ?, 1)`,
+      'Sun Salutation Flow', 'Yoga', 'Classic Surya Namaskar sequence for strength and flexibility'
+    );
+    const yoga = await db.getFirstAsync<{ id: number }>(
+      `SELECT id FROM routines WHERE name='Sun Salutation Flow' AND is_builtin=1`
+    );
+    if (yoga) {
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, yoga.id, 'Sun Salutation A', 0, 5, 1, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, yoga.id, 'Sun Salutation B', 1, 5, 1, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, yoga.id, 'Warrior I & II Flow', 2, 3, 1, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, yoga.id, 'Savasana', 3, 1, 5, 0);
+    }
+
+    // 13. Taiji Basics — Taiji
+    await db.runAsync(
+      `INSERT INTO routines (name, category, description, is_builtin) VALUES (?, ?, ?, 1)`,
+      'Taiji Basics', 'Taiji', 'Foundational Tai Chi forms for balance and calm'
+    );
+    const taiji = await db.getFirstAsync<{ id: number }>(
+      `SELECT id FROM routines WHERE name='Taiji Basics' AND is_builtin=1`
+    );
+    if (taiji) {
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, taiji.id, 'Standing Meditation (Zhan Zhuang)', 0, 1, 5, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, taiji.id, 'Cloud Hands (Yun Shou)', 1, 3, 10, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, taiji.id, 'Brush Knee Push (Lou Xi Ao Bu)', 2, 3, 10, 0);
+      await db.runAsync(`INSERT INTO routine_exercises (routine_id, name, order_index, suggested_sets, suggested_reps, suggested_weight_kg) VALUES (?, ?, ?, ?, ?, ?)`, taiji.id, 'Wave Hands Like Clouds', 3, 3, 8, 0);
     }
   });
 }

@@ -8,11 +8,8 @@ export interface PickedVideo {
 }
 
 export async function pickVideoFromGallery(): Promise<PickedVideo | null> {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    throw new Error('Media library permission not granted');
-  }
-
+  // expo-image-picker v14+ uses PHPicker on iOS 14+ which does not require
+  // explicit photo library permission — the system picker handles access itself.
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['videos'],
     allowsEditing: false,

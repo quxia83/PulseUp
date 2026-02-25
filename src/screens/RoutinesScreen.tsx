@@ -21,13 +21,14 @@ type FilterKey = RoutineCategory | 'All' | 'ForYou';
 const CATEGORIES: Array<FilterKey> = [
   'ForYou', 'All', 'Strength', 'Cardio', 'HIIT', 'Mobility',
   'Upper Body', 'Lower Body', 'Full Body', 'Core',
+  'Meditation', 'Stretch', 'Yoga', 'Taiji',
 ];
 
 const GOAL_CATEGORIES: Record<FitnessGoal, RoutineCategory[]> = {
-  lose_weight:       ['Cardio', 'HIIT', 'Full Body'],
+  lose_weight:       ['Cardio', 'HIIT', 'Full Body', 'Yoga'],
   build_muscle:      ['Strength', 'Upper Body', 'Lower Body'],
-  maintain:          ['Full Body', 'Strength', 'Mobility'],
-  improve_endurance: ['Cardio', 'HIIT', 'Mobility'],
+  maintain:          ['Full Body', 'Strength', 'Mobility', 'Taiji', 'Stretch', 'Meditation'],
+  improve_endurance: ['Cardio', 'HIIT', 'Mobility', 'Yoga', 'Taiji'],
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -39,6 +40,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Lower Body': '#AF52DE',
   'Full Body': '#FF9500',
   Core: '#FFCC00',
+  Meditation: '#9B59B6',
+  Stretch: '#1ABC9C',
+  Yoga: '#E67E22',
+  Taiji: '#2980B9',
 };
 
 export default function RoutinesScreen({ navigation }: RoutinesScreenProps) {

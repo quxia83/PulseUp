@@ -44,6 +44,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Lower Body': '#AF52DE',
   'Full Body': '#FF9500',
   Core: '#FFCC00',
+  Meditation: '#9B59B6',
+  Stretch: '#1ABC9C',
+  Yoga: '#E67E22',
+  Taiji: '#2980B9',
 };
 
 export default function RoutineDetailScreen({ route, navigation }: RoutineDetailScreenProps) {
