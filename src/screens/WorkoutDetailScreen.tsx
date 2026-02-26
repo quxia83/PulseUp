@@ -82,7 +82,7 @@ function ExerciseDetailBlock({ exercise }: ExerciseDetailBlockProps) {
 }
 
 export default function WorkoutDetailScreen({ route }: WorkoutDetailScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { workoutId } = route.params;
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -107,7 +107,7 @@ export default function WorkoutDetailScreen({ route }: WorkoutDetailScreenProps)
     );
   }
 
-  const date = new Date(workout.created_at * 1000).toLocaleDateString(undefined, {
+  const date = new Date(workout.created_at * 1000).toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',

@@ -11,7 +11,7 @@ import type { HomeScreenProps } from '../navigation/types';
 import type { RootStackParamList } from '../navigation/types';
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { workouts } = useWorkouts();
   const { settings } = useReminderSettings();
@@ -24,8 +24,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   }, [settings]);
 
   const lastWorkout = workouts[0] ?? null;
+  const dateLng = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
   const lastWorkoutLabel = lastWorkout
-    ? new Date(lastWorkout.created_at * 1000).toLocaleDateString(undefined, {
+    ? new Date(lastWorkout.created_at * 1000).toLocaleDateString(dateLng, {
         weekday: 'short', month: 'short', day: 'numeric',
       })
     : null;

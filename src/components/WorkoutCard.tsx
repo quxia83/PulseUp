@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { Workout } from '../types';
 import { formatElapsed } from '../hooks/useTimer';
 
@@ -8,8 +9,9 @@ interface Props {
   onPress: () => void;
 }
 
-function formatDate(unixSec: number): string {
-  return new Date(unixSec * 1000).toLocaleDateString(undefined, {
+function formatDate(unixSec: number, locale: string): string {
+  const lng = locale === 'zh' ? 'zh-CN' : 'en-US';
+  return new Date(unixSec * 1000).toLocaleDateString(lng, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -17,12 +19,13 @@ function formatDate(unixSec: number): string {
 }
 
 export default function WorkoutCard({ workout, onPress }: Props) {
+  const { i18n } = useTranslation();
   const subtitle = workout.source_routine ?? workout.exercise_summary ?? null;
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.left}>
-        <Text style={styles.date}>{formatDate(workout.created_at)}</Text>
+        <Text style={styles.date}>{formatDate(workout.created_at, i18n.language)}</Text>
         {subtitle ? (
           <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
         ) : null}
