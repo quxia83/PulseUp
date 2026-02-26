@@ -6,7 +6,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProfile } from '../hooks/useProfile';
-import { useLanguage } from '../hooks/useLanguage';
 import type { FitnessGoal, ExperienceLevel, UserProfile } from '../types';
 
 const GOAL_KEYS: { key: FitnessGoal; tKey: string; icon: string }[] = [
@@ -72,7 +71,6 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { profile, save, loading } = useProfile();
-  const { language, setLanguage } = useLanguage();
 
   // local edit state (strings for text inputs)
   const [weight, setWeight]       = useState('');
@@ -223,24 +221,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Language */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
-          <View style={styles.langRow}>
-            {(['en', 'zh'] as const).map(lng => (
-              <Pressable
-                key={lng}
-                style={[styles.langPill, language === lng && styles.langPillActive]}
-                onPress={() => setLanguage(lng)}
-              >
-                <Text style={[styles.langPillText, language === lng && styles.langPillTextActive]}>
-                  {t(lng === 'en' ? 'profile.lang_en' : 'profile.lang_zh')}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
         {/* Save */}
         <Pressable style={[styles.saveBtn, saved && styles.saveBtnDone]} onPress={handleSave}>
           <Text style={styles.saveBtnText}>{saved ? t('profile.saved') : t('profile.save_profile')}</Text>
@@ -317,19 +297,6 @@ const styles = StyleSheet.create({
   levelLabel: { fontSize: 15, fontWeight: '600', color: '#1C1C1E' },
   levelLabelActive: { color: '#FF6B35' },
   levelDesc: { fontSize: 12, color: '#8E8E93' },
-  langRow: { flexDirection: 'row', gap: 10 },
-  langPill: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#F2F2F7',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  langPillActive: { borderColor: '#FF6B35', backgroundColor: '#FFF4F0' },
-  langPillText: { fontSize: 15, fontWeight: '600', color: '#3C3C43' },
-  langPillTextActive: { color: '#FF6B35' },
   saveBtn: {
     backgroundColor: '#FF6B35',
     borderRadius: 14,

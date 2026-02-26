@@ -158,10 +158,7 @@
     "exp_intermediate": "1–3 years",
     "exp_advanced": "3+ years",
     "saved": "Saved ✓",
-    "save_profile": "Save Profile",
-    "language": "Language",
-    "lang_en": "English",
-    "lang_zh": "中文"
+    "save_profile": "Save Profile"
   },
   "reminders": {
     "planned_workouts": "Planned Workouts",

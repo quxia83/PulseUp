@@ -158,10 +158,7 @@
     "exp_intermediate": "1–3 年",
     "exp_advanced": "3+ 年",
     "saved": "已保存 ✓",
-    "save_profile": "保存资料",
-    "language": "语言",
-    "lang_en": "English",
-    "lang_zh": "中文"
+    "save_profile": "保存资料"
   },
   "reminders": {
     "planned_workouts": "计划训练",
