@@ -3,7 +3,7 @@
     "name": "PulseUp",
     "slug": "PulseUp",
     "scheme": "pulseup",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -43,20 +43,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pulseup.app",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "infoPlist": {
         "UIBackgroundModes": [
           "fetch",
-          "remote-notification",
-          "fetch",
           "remote-notification"
         ],
+        "CFBundleLocalizations": ["en", "zh-Hans"],
+        "CFBundleDevelopmentRegion": "en",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.pulseup.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
